@@ -1,0 +1,65 @@
+data
+# === Java ===
+*.class
+*.jar
+*.war
+*.ear
+
+# === Maven ===
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# === Gradle ===
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# === IntelliJ IDEA ===
+.idea/
+*.iml
+*.iws
+out/
+
+# === Eclipse ===
+.project
+.classpath
+.settings/
+bin/
+
+# === VS Code ===
+.vscode/
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+logs/
+*.tmp
+
+# === Docker ===
+*.pid
+docker-compose.override.yml
+
+# === Test Reports ===
+surefire-reports/
+test-output/
+
+# === Git ===
+.git/
+
+# === Environment Files ===
+.env
+*.env
+
+# === Others ===
+node_modules/
+coverage/
