@@ -1,6 +1,6 @@
 version: '4'
 services:
-  mongodb1:
+  mongodb:
     image: mongo:7.0.5
     container_name: mongodb-food
     ports:
@@ -10,18 +10,18 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
       MONGO_INITDB_DATABASE: product-service
     volumes:
-      - ./data/mongodb1:/data/db
-  mongodb2:
-    image: mongo:7.0.5
-    container_name: mongodb-visit
-    ports:
-      - "27018:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: visit-service
-    volumes:
-      - ./data/mongodb2:/data/db
+      - ./data/mongodb:/data/db
+  # mongodb2:
+  #   image: mongo:7.0.5
+  #   container_name: mongodb-visit
+  #   ports:
+  #     - "27018:27017"
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: password
+  #     MONGO_INITDB_DATABASE: visit-service
+  #   volumes:
+  #     - ./data/mongodb2:/data/db
   # mysql1:
   #   image: mysql:8.3.0
   #   container_name: mysql
