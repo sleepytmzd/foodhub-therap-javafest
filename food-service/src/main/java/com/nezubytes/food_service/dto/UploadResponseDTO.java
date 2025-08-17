@@ -1,0 +1,15 @@
+package com.nezubytes.food_service.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+
+public class UploadResponseDTO {
+    private String url;
+}
