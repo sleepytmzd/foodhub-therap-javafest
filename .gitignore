@@ -4,7 +4,8 @@ data
 *.jar
 *.war
 *.ear
-
+.env
+env
 # === Maven ===
 target/
 pom.xml.tag
