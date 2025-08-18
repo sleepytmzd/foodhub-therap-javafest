@@ -14,23 +14,45 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v3
 
-      # Step 2: Log in to DockerHub
+      # Step 2: Set up Java
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      # Step 3: Log in to DockerHub
       - name: Log in to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 3: Build and push Docker images for all services
+      # Step 4: Build and push Docker images for all services
       - name: Build and Push Images
         run: |
-          # Define your services and their directories
+          # List of your Spring Boot microservices
           SERVICES=("food-service" "image-service-sb")
 
           for SERVICE in "${SERVICES[@]}"; do
-            echo "Building $SERVICE ..."
+            echo "Packaging and building $SERVICE ..."
+
+            # Move into service directory
+            cd $SERVICE
+
+            # Run Maven build (creates target/*.jar)
+            mvn clean package -DskipTests
+
+            # Define image name
             IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/$SERVICE:latest"
-            
-            docker build -t $IMAGE_NAME ./$SERVICE
+
+            # Build Docker image (Dockerfile should copy from target/*.jar)
+            docker build -t $IMAGE_NAME .
+
+            # Push to DockerHub
             docker push $IMAGE_NAME
+
+            # Go back to repo root
+            cd ..
           done
