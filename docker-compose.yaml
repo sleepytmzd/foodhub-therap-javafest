@@ -11,6 +11,24 @@ services:
       MONGO_INITDB_DATABASE: product-service
     volumes:
       - ./data/mongodb:/data/db
+  image-service-sb:
+    image: sleepytmzd/image-service-sb:v1
+    container_name: image-service-sb 
+    ports:
+      - "8080:8080"
+    environment:
+      CLOUDINARY_URL: cloudinary://941186935662824:i5ioWntb-8NFNNUPvncgCijswFE@dihf0za5q
+  food-service:
+    image: sleepytmzd/food-service:v1
+    container_name: food-service
+    ports:
+      - "8081:8081"
+    environment:
+      IMAGE_SERVICE_URL: http://image-service-sb:8080
+      MONGODB_URL: mongodb://root:password@mongodb:27017/product-service?authSource=admin
+    depends_on:
+      - mongodb
+      - image-service-sb
   # mongodb2:
   #   image: mongo:7.0.5
   #   container_name: mongodb-visit
