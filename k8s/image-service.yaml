@@ -25,6 +25,13 @@ spec:
             configMapKeyRef:
               name: mongo-config 
               key: cloudinary-url
+        resources:
+          requests:
+            cpu: "100m"       
+            memory: "256Mi"  
+          limits:
+            cpu: "200m"       
+            memory: "512Mi"
 
 ---
 

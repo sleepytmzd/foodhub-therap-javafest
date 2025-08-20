@@ -27,6 +27,13 @@ spec:
               key: image-service-url
         - name: MONGODB_URL
           value: mongodb://root:password@mongodb-food-service:27017/product-service?authSource=admin
+        resources:
+          requests:
+            cpu: "100m"       
+            memory: "256Mi"  
+          limits:
+            cpu: "200m"       
+            memory: "512Mi"
 
 ---
 
@@ -35,12 +42,12 @@ kind: Service
 metadata:
   name: food-service-service
 spec:
-  type: NodePort
+  # type: NodePort
   selector:
     app: food-service
   ports:
     - protocol: TCP
       port: 8081
       targetPort: 8081
-      nodePort: 30100
+      # nodePort: 30100
 

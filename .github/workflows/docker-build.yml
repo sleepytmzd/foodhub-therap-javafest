@@ -32,27 +32,44 @@ jobs:
       # Step 4: Build and push Docker images for all services
       - name: Build and Push Images
         run: |
+          # Unique tag = GitHub SHA
+          IMAGE_TAG=${{ github.sha }}
+
           # List of your Spring Boot microservices
           SERVICES=("food-service" "image-service-sb")
 
           for SERVICE in "${SERVICES[@]}"; do
             echo "Packaging and building $SERVICE ..."
 
-            # Move into service directory
             cd $SERVICE
-
-            # Run Maven build (creates target/*.jar)
             mvn clean package -DskipTests
 
-            # Define image name
-            IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/$SERVICE:latest"
+            IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/$SERVICE:$IMAGE_TAG"
 
-            # Build Docker image (Dockerfile should copy from target/*.jar)
             docker build -t $IMAGE_NAME .
-
-            # Push to DockerHub
             docker push $IMAGE_NAME
 
-            # Go back to repo root
             cd ..
           done
+      
+      # # Step 5: Set up kubectl with kubeconfig from secrets
+      # - name: Set up Kubectl
+      #   run: |
+      #     mkdir -p $HOME/.kube
+      #     echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+
+      # # Step 6: Deploy to Kubernetes (update images dynamically)
+      # - name: Deploy to Kubernetes
+      #   run: |
+      #     IMAGE_TAG=${{ github.sha }}
+      #     SERVICES=("food-service" "image-service-sb")
+
+      #     for SERVICE in "${SERVICES[@]}"; do
+      #       echo "Updating deployment for $SERVICE ..."
+      #       kubectl set image deployment/$SERVICE $SERVICE=${{ secrets.DOCKERHUB_USERNAME }}/$SERVICE:$IMAGE_TAG -n default
+      #     done
+
+      #     # Optional: wait until rollout is complete
+      #     for SERVICE in "${SERVICES[@]}"; do
+      #       kubectl rollout status deployment/$SERVICE -n default
+      #     done
