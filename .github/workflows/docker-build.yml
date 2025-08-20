@@ -52,22 +52,24 @@ jobs:
             cd ..
           done
       
-      # - name: Set up Kubectl
-      #   run: |
-      #     mkdir -p $HOME/.kube
-      #     echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+  deploy:
+    runs-on: ubuntu-latest
 
-      # - name: Deploy to Kubernetes
-      #   run: |
-      #     IMAGE_TAG=${{ github.sha }}
-      #     SERVICES=("food-service" "image-service-sb")
+    steps:
+      - name: Set up kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
 
-      #     for SERVICE in "${SERVICES[@]}"; do
-      #       echo "Updating deployment for $SERVICE ..."
-      #       kubectl set image deployment/$SERVICE $SERVICE=${{ secrets.DOCKERHUB_USERNAME }}/$SERVICE:$IMAGE_TAG -n default
-      #     done
+      - name: Deploy to Kubernetes
+        run: |
+          IMAGE_TAG=${{ github.sha }}  # workflow_run provides the triggering SHA
+          SERVICES=("food-service" "image-service-sb")
 
-      #     # Optional: wait until rollout is complete
-      #     for SERVICE in "${SERVICES[@]}"; do
-      #       kubectl rollout status deployment/$SERVICE -n default
-      #     done
+          for SERVICE in "${SERVICES[@]}"; do
+            kubectl set image deployment.apps/"$SERVICE"-deployment $SERVICE=${{ secrets.DOCKERHUB_USERNAME }}/$SERVICE:$IMAGE_TAG -n default
+          done
+
+          for SERVICE in "${SERVICES[@]}"; do
+            kubectl rollout status deployment.apps/"$SERVICE"-deployment -n default
+          done
