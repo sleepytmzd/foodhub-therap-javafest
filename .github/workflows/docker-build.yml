@@ -66,9 +66,9 @@ jobs:
       - name: Configure kubectl
         uses: google-github-actions/get-gke-credentials@v1
         with:
-          cluster_name: your-cluster-name
-          location: your-cluster-zone-or-region
-          project_id: your-gcp-project-id
+          cluster_name: cluster-1
+          location: us-central1
+          project_id: kubernetes-test-469519
 
       # Step 3: Deploy to GKE
       - name: Deploy to Kubernetes
