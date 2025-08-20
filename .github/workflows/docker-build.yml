@@ -52,13 +52,11 @@ jobs:
             cd ..
           done
       
-      # # Step 5: Set up kubectl with kubeconfig from secrets
       # - name: Set up Kubectl
       #   run: |
       #     mkdir -p $HOME/.kube
       #     echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
 
-      # # Step 6: Deploy to Kubernetes (update images dynamically)
       # - name: Deploy to Kubernetes
       #   run: |
       #     IMAGE_TAG=${{ github.sha }}
