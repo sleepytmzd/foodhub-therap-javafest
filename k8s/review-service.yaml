@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: review-service-deployment
+  labels:
+    app: review-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: review-service
+  template:
+    metadata:
+      labels:
+        app: review-service
+    spec:
+      containers:
+      - name: review-service
+        image: sleepytmzd/review-service:v2
+        ports:
+        - containerPort: 8083
+        resources:
+          requests:
+            cpu: "100m"       
+            memory: "256Mi"  
+          limits:
+            cpu: "200m"       
+            memory: "512Mi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: review-service-service
+spec:
+  type: NodePort
+  selector:
+    app: review-service
+  ports:
+    - protocol: TCP
+      port: 8083
+      targetPort: 8083
+      # nodePort: 30100
+

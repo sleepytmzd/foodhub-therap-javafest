@@ -1,0 +1,86 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Java
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      # Step 3: Log in to DockerHub
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Step 4: Build and push Docker images for all services
+      - name: Build and Push Images
+        run: |
+          # Unique tag = GitHub SHA
+          IMAGE_TAG=${{ github.sha }}
+
+          # List of your Spring Boot microservices
+          SERVICES=("food-service" "image-service-sb" "visit-service" "review-service")
+
+          for SERVICE in "${SERVICES[@]}"; do
+            echo "Packaging and building $SERVICE ..."
+
+            cd $SERVICE
+            mvn clean package -DskipTests
+
+            IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/$SERVICE:$IMAGE_TAG"
+
+            docker build -t $IMAGE_NAME .
+            docker push $IMAGE_NAME
+
+            cd ..
+          done
+      
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      # Step 1: Authenticate to GCP using the service account
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # Step 2: Get GKE credentials for kubectl
+      - name: Configure kubectl
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: foodhub-cluster-1
+          location: us-central1
+          project_id: kubernetes-test-469519
+
+      # Step 3: Deploy to GKE
+      - name: Deploy to Kubernetes
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          SERVICES=("food-service" "image-service-sb" "visit-service" "review-service")
+
+          for SERVICE in "${SERVICES[@]}"; do
+            kubectl set image deployment.apps/"$SERVICE"-deployment \
+              $SERVICE=${{ secrets.DOCKERHUB_USERNAME }}/$SERVICE:$IMAGE_TAG -n default
+          done
+
+          for SERVICE in "${SERVICES[@]}"; do
+            kubectl rollout status deployment.apps/"$SERVICE"-deployment -n default
+          done

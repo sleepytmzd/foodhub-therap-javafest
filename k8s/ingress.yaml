@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: foodhub-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "gce" # GKE native ingress
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api/food
+        pathType: Prefix
+        backend:
+          service:
+            name: food-service-service
+            port:
+              number: 8081
+      - path: /api/image
+        pathType: Prefix
+        backend:
+          service:
+            name: image-service-sb-service
+            port:
+              number: 80
+      - path: /api/visit
+        pathType: Prefix
+        backend:
+          service:
+            name: visit-service-service
+            port:
+              number: 8082

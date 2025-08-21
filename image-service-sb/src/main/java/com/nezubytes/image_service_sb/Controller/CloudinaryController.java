@@ -17,6 +17,7 @@ public class CloudinaryController {
     @Autowired
     private CloudinaryService cloudinaryService;
 
+
     @PostMapping("/upload")
     public ResponseEntity<UploadResponseDTO> upload(@RequestParam("file") MultipartFile file){
         try {

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: food-service-deployment
+  labels:
+    app: food-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: food-service
+  template:
+    metadata:
+      labels:
+        app: food-service
+    spec:
+      containers:
+      - name: food-service
+        image: sleepytmzd/food-service:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: IMAGE_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-config 
+              key: image-service-url
+        - name: MONGODB1_URL
+          value: mongodb://root:password@mongodb-food-service:27017/product-service?authSource=admin
+        resources:
+          requests:
+            cpu: "100m"       
+            memory: "256Mi"  
+          limits:
+            cpu: "200m"       
+            memory: "512Mi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: food-service-service
+spec:
+  type: NodePort
+  selector:
+    app: food-service
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+      # nodePort: 30100
+

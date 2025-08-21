@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-config
+data:
+  mongodb1-url: mongodb-food-service
+  mongodb2-url: mongodb-visit-service
+  image-service-url: image-service-sb-service
+  cloudinary-url: cloudinary://941186935662824:i5ioWntb-8NFNNUPvncgCijswFE@dihf0za5q

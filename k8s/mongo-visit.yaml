@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-visit-deployment
+  labels:
+    app: mongodb-visit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-visit
+  template:
+    metadata:
+      labels:
+        app: mongodb-visit
+    spec:
+      containers:
+      - name: mongodb-visit
+        image: mongo:7.0.5
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret 
+              key: mongo-user 
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret 
+              key: mongo-password
+        - name: MONGO_INITDB_DATABASE
+          value: visit-service
+        resources:
+          requests:
+            cpu: "100m"     
+            memory: "250Mi"  
+          limits:
+            cpu: "500m"    
+            memory: "1Gi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-visit-service
+spec:
+  selector:
+    app: mongodb-visit
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+

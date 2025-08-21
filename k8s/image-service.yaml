@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-service-sb-deployment
+  labels:
+    app: image-service-sb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: image-service-sb
+  template:
+    metadata:
+      labels:
+        app: image-service-sb
+    spec:
+      containers:
+      - name: image-service-sb
+        image: sleepytmzd/image-service-sb:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: CLOUDINARY_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-config 
+              key: cloudinary-url
+        resources:
+          requests:
+            cpu: "100m"       
+            memory: "256Mi"  
+          limits:
+            cpu: "200m"       
+            memory: "512Mi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: image-service-sb-service
+spec:
+  type: NodePort  
+  selector:
+    app: image-service-sb
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+

@@ -22,6 +22,38 @@ services:
       MONGO_INITDB_DATABASE: visit-service
     volumes:
       - ./data/mongodb2:/data/db
+  image-service-sb:
+    image: sleepytmzd/image-service-sb:v2       # Replace with your dockerhub username
+    container_name: image-service-sb 
+    ports:
+      - "8080:8080"
+    environment:
+      CLOUDINARY_URL: cloudinary://941186935662824:i5ioWntb-8NFNNUPvncgCijswFE@dihf0za5q
+  food-service:
+    image: sleepytmzd/food-service:v2
+    container_name: food-service
+    ports:
+      - "8081:8081"
+    environment:
+      IMAGE_SERVICE_URL: http://image-service-sb:8080
+      MONGODB1_URL: mongodb://root:password@mongodb1:27017/product-service?authSource=admin
+    depends_on:
+      - mongodb1
+      - image-service-sb
+  visit-service:
+    image: sleepytmzd/visit-service:v2       # Replace with your dockerhub username
+    container_name: visit-service
+    ports:
+      - "8082:8082"
+    environment:
+      MONGODB2_URL: mongodb://root:password@mongodb2:27017/visit-service?authSource=admin
+    depends_on:
+      - mongodb2
+  review-service:
+    image: sleepytmzd/review-service:v2       # Replace with your dockerhub username
+    container_name: review-service
+    ports:
+      - "8083:8083"
   # mysql1:
   #   image: mysql:8.3.0
   #   container_name: mysql
