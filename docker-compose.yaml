@@ -22,6 +22,17 @@ services:
       MONGO_INITDB_DATABASE: visit-service
     volumes:
       - ./data/mongodb2:/data/db
+  mongodb3:
+    image: mongo:7.0.5
+    container_name: mongodb-review
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: review-service
+    volumes:
+      - ./data/mongodb3:/data/db
   image-service-sb:
     image: sleepytmzd/image-service-sb:v2       # Replace with your dockerhub username
     container_name: image-service-sb 
@@ -54,6 +65,9 @@ services:
     container_name: review-service
     ports:
       - "8083:8083"
+    environment:
+      MONGODG3_URL: mongodb://root:password@mongodb3:27017/review-service?authSource=admin
+  
   # mysql1:
   #   image: mysql:8.3.0
   #   container_name: mysql
