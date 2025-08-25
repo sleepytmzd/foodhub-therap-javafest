@@ -1,6 +1,6 @@
-package com.nezubyte.visit_service.model;
+package com.nezubytes.review_service.model;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -10,17 +10,20 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Document(value="Visit")
+@Document(value = "Comment")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Visit {
+public class Comment {
     @Id
     private String id; 
-    private String userId; 
-    private String location; 
-    private String time; 
-    private String resturantName; 
-    private List<String> foods; 
+
+    private String reviewId;   
+    private String userId;    
+
+    private String content;   
+
+    private LocalDateTime createdAt; 
+    private LocalDateTime updatedAt;  
 }
