@@ -19,6 +19,9 @@ spec:
         image: sleepytmzd/review-service:v2
         ports:
         - containerPort: 8083
+        env:
+          - name: MONGODB3_URL
+            value: mongodb://root:password@mongodb-review-service:27017/review-service?authSource=admin
         resources:
           requests:
             cpu: "100m"       
