@@ -33,41 +33,157 @@ services:
       MONGO_INITDB_DATABASE: review-service
     volumes:
       - ./data/mongodb3:/data/db
+  postgres-kc:
+    image: postgres:17.6
+    container_name: postgres-kc 
+    volumes:
+      - ./data/postgres-kc:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak_db
+      POSTGRES_USER: keycloak_db_user
+      POSTGRES_PASSWORD: keycloak_db_user_password
+    # networks:
+    #   - keycloak_network
+  postgres-user:
+    image: postgres:17.6
+    container_name: postgres-user 
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./data/postgres-user:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d user_db"]
+      interval: 5s
+      retries: 10
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    command: start --import-realm
+    environment:
+      KC_HOSTNAME: http://keycloak:8080
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: true
+      KC_HOSTNAME_STRICT_BACKCHANNEL: false
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HEALTH_ENABLED: true
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: password
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-kc/keycloak_db
+      KC_DB_USERNAME: keycloak_db_user
+      KC_DB_PASSWORD: keycloak_db_user_password
+    ports:
+      - 8090:8080
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
+    # restart: always
+    depends_on:
+      - postgres-kc
+    # networks:
+    #   - keycloak_network
+  nginx-proxy:
+    image: nginx:stable
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:8080"  # expose to browser as localhost:9000
+    depends_on:
+      - keycloak
   image-service-sb:
-    image: sleepytmzd/image-service-sb:v2       # Replace with your dockerhub username
+    image: sleepytmzd/image-service-sb:v3       # Replace with your dockerhub username
     container_name: image-service-sb 
     ports:
-      - "8080:8080"
+      - "8085:8080"
     environment:
       CLOUDINARY_URL: cloudinary://941186935662824:i5ioWntb-8NFNNUPvncgCijswFE@dihf0za5q
   food-service:
-    image: sleepytmzd/food-service:v2
+    image: sleepytmzd/food-service:v3
     container_name: food-service
     ports:
       - "8081:8081"
     environment:
       IMAGE_SERVICE_URL: http://image-service-sb:8080
       MONGODB1_URL: mongodb://root:password@mongodb1:27017/product-service?authSource=admin
+      FRONTEND_URL: http://localhost:7000
+      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+    extra_hosts:
+      - "localhost:host-gateway"
     depends_on:
       - mongodb1
       - image-service-sb
   visit-service:
-    image: sleepytmzd/visit-service:v2       # Replace with your dockerhub username
+    image: sleepytmzd/visit-service:v3       # Replace with your dockerhub username
     container_name: visit-service
     ports:
       - "8082:8082"
     environment:
       MONGODB2_URL: mongodb://root:password@mongodb2:27017/visit-service?authSource=admin
+      FRONTEND_URL: http://localhost:7000
+      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+    extra_hosts:
+      - "localhost:host-gateway"
     depends_on:
       - mongodb2
   review-service:
-    image: sleepytmzd/review-service:v2       # Replace with your dockerhub username
+    image: sleepytmzd/review-service:v3       # Replace with your dockerhub username
     container_name: review-service
     ports:
       - "8083:8083"
     environment:
-      MONGODG3_URL: mongodb://root:password@mongodb3:27017/review-service?authSource=admin
+      MONGODB3_URL: mongodb://root:password@mongodb3:27017/review-service?authSource=admin
+      FRONTEND_URL: http://localhost:7000
+      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+    extra_hosts:
+      - "localhost:host-gateway"
+    depends_on:
+      - mongodb3
+  user-service:
+    image: sleepytmzd/user-service:v3
+    container_name: user-service 
+    ports:
+      - "8084:8084"
+    environment:
+      POSTGRES_URL: jdbc:postgresql://postgres-user:5432/user_db
+      POSTGRES_USER: user 
+      POSTGRES_PASSWORD: password
+      IMAGE_SERVICE_URL: http://image-service-sb:8080
+      FRONTEND_URL: http://localhost:7000
+      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+    # extra_hosts:
+    #   - "localhost:host-gateway"
+    depends_on:
+      postgres-user:
+        condition: service_healthy
   
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_KEYCLOAK_URL: http://localhost:8080
+        NEXT_PUBLIC_KEYCLOAK_REALM: foodhub
+        NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: foodhub-kc
+        NEXT_PUBLIC_VISIT_SERVICE_URL: http://localhost:8082
+        NEXT_PUBLIC_USER_SERVICE_URL: http://localhost:8084
+      network: host
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+      - 1.1.1.1
+    image: sleepytmzd/frontend:v4
+    container_name: frontend
+    ports:
+      - "7000:7000"
+    depends_on:
+      - keycloak
+
+# networks:
+#   keycloak_network:
+#     driver: bridge
   # mysql1:
   #   image: mysql:8.3.0
   #   container_name: mysql

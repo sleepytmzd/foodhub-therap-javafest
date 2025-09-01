@@ -3,6 +3,8 @@ package com.nezubyte.visit_service.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,7 +33,9 @@ public class VisitController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<VisitResponse> getAllVisit() {
+    public List<VisitResponse> getAllVisit(@AuthenticationPrincipal Jwt jwt) {
+        String username = jwt.getClaim("name");
+        System.out.println("username: " + username);
         return visitService.getAllVisit();
     }
 
