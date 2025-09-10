@@ -1,1 +1,2 @@
-Deployment available at: http://34.49.183.181
+Deployment available at: https://foodhubapp.duckdns.org
+Keycloak management interface at: https://foodhubauth.duckdns.org

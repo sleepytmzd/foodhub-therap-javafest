@@ -37,7 +37,7 @@ jobs:
           IMAGE_TAG=${{ github.sha }}
 
           # List of your Spring Boot microservices
-          SERVICES=("food-service" "image-service-sb" "visit-service" "review-service")
+          SERVICES=("food-service" "image-service-sb" "visit-service" "review-service" "user-service")
 
           for SERVICE in "${SERVICES[@]}"; do
             echo "Packaging and building $SERVICE ..."
@@ -52,6 +52,10 @@ jobs:
 
             cd ..
           done
+
+          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/frontend:$IMAGE_TAG"
+          docker build -t $IMAGE_NAME --network=host ./frontend
+          docker push $IMAGE_NAME
       
   deploy:
     if: "!contains(github.event.head_commit.message, 'skip cd')"
@@ -76,7 +80,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           IMAGE_TAG=${{ github.sha }}
-          SERVICES=("food-service" "image-service-sb" "visit-service" "review-service")
+          SERVICES=("food-service" "image-service-sb" "visit-service" "review-service" "user-service" "frontend")
 
           for SERVICE in "${SERVICES[@]}"; do
             kubectl set image deployment.apps/"$SERVICE"-deployment \
