@@ -1,0 +1,128 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: keycloak-backendconfig
+spec:
+  healthCheck:
+    type: HTTP
+    requestPath: /health/ready
+    port: 9000
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 3
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:latest
+          args: ["start"]
+          env:
+            - name: KC_HOSTNAME
+              value: "foodhubauth.duckdns.org"
+              # valueFrom:
+              #   configMapKeyRef:
+              #     name: app-config 
+              #     key: kc-hostname
+            # - name: KC_HOSTNAME_PORT
+            #   value: "8080"
+            # - name: KC_HOSTNAME_PATH
+            #   value: "/keycloak"
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              value: "admin"
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              value: "password"
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            # - name: KC_HOSTNAME_STRICT
+            #   value: "false"
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+            - name: KC_METRICS_ENABLED
+              value: "true"
+            - name: 'KC_CACHE'
+              value: 'ispn'
+            - name: 'KC_DB_URL'
+              value: jdbc:postgresql://postgres-kc-service/keycloak_db
+            - name: 'KC_DB'
+              value: 'postgres'
+            - name: 'KC_DB_PASSWORD'
+              value: keycloak_db_user_password
+            - name: 'KC_DB_USERNAME'
+              value: keycloak_db_user
+            - name: KC_PROXY_HEADERS  # Changed: replace KC_PROXY
+              value: "xforwarded"
+            # - name: KC_HOSTNAME_STRICT_HTTPS  # Add this
+            #   value: "true"
+            - name: KC_PROXY
+              value: "edge"
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: management
+              containerPort: 9000
+          startupProbe:
+            httpGet:
+              path: /health/ready
+              # path: /
+              port: 9000
+            periodSeconds: 10
+            failureThreshold: 30              
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              # path: /
+              port: 9000
+            periodSeconds: 10
+            failureThreshold: 3              
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              # path: /
+              port: 9000
+            periodSeconds: 10
+            failureThreshold: 3              
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  annotations:
+    cloud.google.com/backend-config: '{"default":"keycloak-backendconfig"}'
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+    - name: management
+      port: 9000
+      targetPort: 9000
+  type: ClusterIP

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  mongodb1-url: mongodb-food-service
+  mongodb2-url: mongodb-visit-service
+  image-service-url: image-service-sb-service
+  cloudinary-url: cloudinary://941186935662824:i5ioWntb-8NFNNUPvncgCijswFE@dihf0za5q
+  frontend-url: https://foodhubapp.duckdns.org
+  kc-issuer-url: https://foodhubauth.duckdns.org/realms/foodhub
+  keycloak-url: https://foodhubauth.duckdns.org
+  keycloak-realm: foodhub
+  keycloak-client-id: foodhub-kc
+  kc-hostname: foodhubauth.duckdns.org
+  

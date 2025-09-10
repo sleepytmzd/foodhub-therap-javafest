@@ -5,10 +5,19 @@ metadata:
   namespace: default
   annotations:
     kubernetes.io/ingress.class: "gce" # GKE native ingress
+    networking.gke.io/managed-certificates: foodhub-certificate
 spec:
   rules:
-  - http:
+  - host: foodhubapp.duckdns.org
+    http:
       paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 7000
       - path: /api/food
         pathType: Prefix
         backend:
@@ -16,13 +25,6 @@ spec:
             name: food-service-service
             port:
               number: 8081
-      - path: /api/image
-        pathType: Prefix
-        backend:
-          service:
-            name: image-service-sb-service
-            port:
-              number: 80
       - path: /api/visit
         pathType: Prefix
         backend:
@@ -30,3 +32,17 @@ spec:
             name: visit-service-service
             port:
               number: 8082
+      - path: /api/review
+        pathType: Prefix
+        backend:
+          service:
+            name: review-service-service
+            port:
+              number: 8083
+      - path: /api/user
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service-service
+            port:
+              number: 8084

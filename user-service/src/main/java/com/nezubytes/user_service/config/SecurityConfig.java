@@ -22,7 +22,9 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/health").permitAll()
+                        .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();
     }

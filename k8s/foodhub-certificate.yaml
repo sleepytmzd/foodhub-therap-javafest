@@ -1,0 +1,7 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: foodhub-certificate
+spec:
+  domains:
+    - foodhubapp.duckdns.org

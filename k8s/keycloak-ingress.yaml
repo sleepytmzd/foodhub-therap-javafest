@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  # namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "gce" # GKE native ingress
+    networking.gke.io/managed-certificates: keycloak-certificate
+spec:
+  # tls:
+  # - hosts:
+  #   - foodhubauth.duckdns.org
+  #   secretName: keycloak-tls
+  rules:
+  - host: foodhubauth.duckdns.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: keycloak
+            port:
+              number: 8080
