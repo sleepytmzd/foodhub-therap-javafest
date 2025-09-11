@@ -4,6 +4,9 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/providers/AuthProvider";
 import AuthButton from "@/components/AuthButton";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -59,13 +62,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <AuthButton />
-          {children}
+          
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Navbar />
+            {children}
+            <Footer />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>
