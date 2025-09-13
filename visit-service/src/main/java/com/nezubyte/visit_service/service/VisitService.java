@@ -65,4 +65,72 @@ public class VisitService {
                     ))
                 .toList();
     }
+
+    public VisitResponse updateVisit(String id, VisitRequest visitRequest) {
+        Visit visit = visitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Visit not found with id: " + id));
+
+        if (visitRequest.location() != null)
+            visit.setLocation(visitRequest.location());
+
+        if (visitRequest.time() != null)
+            visit.setTime(visitRequest.time());
+
+        if (visitRequest.resturantName() != null)
+            visit.setResturantName(visitRequest.resturantName());
+
+        if (visitRequest.foods() != null && !visitRequest.foods().isEmpty())
+            visit.setFoods(visitRequest.foods());
+
+        if (visitRequest.userId() != null)
+            visit.setUserId(visitRequest.userId());
+
+        Visit updatedVisit = visitRepository.save(visit);
+
+        return new VisitResponse(
+                updatedVisit.getId(),
+                updatedVisit.getUserId(),
+                updatedVisit.getLocation(),
+                updatedVisit.getTime(),
+                updatedVisit.getResturantName(),
+                updatedVisit.getFoods()
+        );
+    }
+
+    public void deleteVisit(String id) {
+        Visit visit = visitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Visit not found with id: " + id));
+        visitRepository.delete(visit);
+    }
+
+    public VisitResponse getVisitById(String id) {
+        Visit visit = visitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Visit not found with id: " + id));
+
+        return new VisitResponse(
+                visit.getId(),
+                visit.getUserId(),
+                visit.getLocation(),
+                visit.getTime(),
+                visit.getResturantName(),
+                visit.getFoods()
+        );
+    }
+
+    public List<VisitResponse> getVisitsByRestaurant(String restaurantName) {
+        return visitRepository.findByResturantName(restaurantName)
+                .stream()
+                .map(visit -> new VisitResponse(
+                        visit.getId(),
+                        visit.getUserId(),
+                        visit.getLocation(),
+                        visit.getTime(),
+                        visit.getResturantName(),
+                        visit.getFoods()
+                ))
+                .toList();
+    }
+
+
+
 }

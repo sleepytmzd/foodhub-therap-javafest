@@ -117,7 +117,7 @@ services:
       - mongodb1
       - image-service-sb
   visit-service:
-    image: sleepytmzd/visit-service:v3       # Replace with your dockerhub username
+    image: sleepytmzd/visit-service:v4       # Replace with your dockerhub username
     container_name: visit-service
     ports:
       - "8082:8082"
@@ -130,7 +130,7 @@ services:
     depends_on:
       - mongodb2
   review-service:
-    image: sleepytmzd/review-service:v3       # Replace with your dockerhub username
+    image: sleepytmzd/review-service:v4       # Replace with your dockerhub username
     container_name: review-service
     ports:
       - "8083:8083"

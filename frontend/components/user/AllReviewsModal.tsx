@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useAuth } from "@/providers/AuthProvider";
 import createApi from "@/lib/api";
 import FeedPost, { ReviewPost } from "@/components/explore/FeedPost";
+import { deleteReview } from "@/lib/reviewService";
 
 type ReviewResponse = {
   id: string;
@@ -213,6 +214,28 @@ export default function AllReviewsModal({
     }
   };
 
+  const handleDeleteReview = async (id: string) => {
+    if (!confirm("Delete this review?")) return;
+    try {
+      await deleteReview(id, process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL, (keycloak as any)?.token);
+      // remove from posts and rawMap and comments
+      setPosts((s) => s.filter((p) => p.id !== id));
+      setRawMap((m) => {
+        const nm = { ...m };
+        delete nm[id];
+        return nm;
+      });
+      setCommentsByReview((c) => {
+        const nc = { ...c };
+        delete nc[id];
+        return nc;
+      });
+    } catch (e) {
+      console.error("delete review failed", e);
+      alert("Failed to delete review");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
@@ -225,6 +248,10 @@ export default function AllReviewsModal({
 
           {posts.map((p) => (
             <div key={p.id} className="rounded border p-3 bg-card">
+              <div className="flex justify-end">
+                <Button size="sm" variant="destructive" onClick={() => handleDeleteReview(p.id)}>Delete</Button>
+              </div>
+
               <FeedPost
                 post={{
                   ...p,
@@ -233,9 +260,7 @@ export default function AllReviewsModal({
                 liked={!!liked[p.id]}
                 isAuth={isAuth}
                 onToggleLike={() => toggleLike(p.id)}
-                onOpenComments={() => {
-                  // noop: comments are already visible below the post
-                }}
+                onOpenComments={() => {}}
                 onRequireAuth={() => alert("Please sign in to perform this action.")}
               />
 

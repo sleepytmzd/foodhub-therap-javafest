@@ -49,3 +49,51 @@ export async function fetchRestaurantsFromVisits(baseUrl: string, token?: string
 
   return restaurants;
 }
+
+export type VisitRequest = {
+  id: string | null;
+  userId: string | null;
+  location: string | null;
+  time: string; // ISO
+  resturantName: string;
+  foods: string[] | null;
+};
+
+export type VisitResponse = {
+  id: string;
+  userId?: string | null;
+  location?: string | null;
+  time?: string | null;
+  resturantName?: string | null;
+  foods?: string[] | null;
+};
+
+export function visitApiClient(baseUrl?: string, token?: string) {
+  const api = createApi(baseUrl || process.env.NEXT_PUBLIC_VISIT_SERVICE_URL || "");
+  if (token) (api as any).defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  return api;
+}
+
+export async function createVisit(payload: VisitRequest, baseUrl?: string, token?: string) {
+  const api = visitApiClient(baseUrl, token);
+  const resp = await api.post<VisitResponse>("/api/visit", payload);
+  return resp.data as VisitResponse;
+}
+
+export async function updateVisit(visitId: string, payload: VisitRequest, baseUrl?: string, token?: string) {
+  const api = visitApiClient(baseUrl, token);
+  const resp = await api.put<VisitResponse>(`/api/visit/${visitId}`, payload);
+  return resp.data as VisitResponse;
+}
+
+// new: delete a visit by id
+export async function deleteVisit(visitId: string, baseUrl?: string, token?: string) {
+  const api = visitApiClient(baseUrl, token);
+  await api.delete(`/api/visit/${visitId}`);
+}
+
+export async function getVisitById(visitId: string, baseUrl?: string, token?: string) {
+  const api = visitApiClient(baseUrl, token);
+  const resp = await api.get<VisitResponse>(`/api/visit/${visitId}`);
+  return resp.data as VisitResponse;
+}

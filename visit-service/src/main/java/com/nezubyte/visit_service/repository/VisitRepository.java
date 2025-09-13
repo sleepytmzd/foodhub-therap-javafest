@@ -8,4 +8,5 @@ import com.nezubyte.visit_service.model.Visit;
 
 public interface VisitRepository extends  MongoRepository<Visit, String> {
     List<Visit> findByUserId(String user_id);
+    List<Visit> findByResturantName(String resturantName);
 }

@@ -145,6 +145,75 @@ public class ReviewService {
         );
     }
 
+    public void deleteReview(String id) {
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Review not found with id: " + id));
+
+        reviewRepository.delete(review);
+    }
+
+    public ReviewResponse getReviewById(String id) {
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Review not found with id: " + id));
+
+        return new ReviewResponse(
+                review.getId(),
+                review.getTitle(),
+                review.getDescription(),
+                review.getFoodId(),
+                review.getResturantId(),
+                review.getUserId(),
+                review.getReactionCountLike(),
+                review.getReactionCountDislike(),
+                review.getReactionUsersLike(),
+                review.getReactionUsersDislike(),
+                review.getComments(),
+                review.getCreatedAt(),
+                review.getUpdatedAt()
+        );
+    }
+
+    public List<ReviewResponse> getReviewsByFoodId(String foodId) {
+        return reviewRepository.findByFoodId(foodId)
+                .stream()
+                .map(review -> new ReviewResponse(
+                        review.getId(),
+                        review.getTitle(),
+                        review.getDescription(),
+                        review.getFoodId(),
+                        review.getResturantId(),
+                        review.getUserId(),
+                        review.getReactionCountLike(),
+                        review.getReactionCountDislike(),
+                        review.getReactionUsersLike(),
+                        review.getReactionUsersDislike(),
+                        review.getComments(),
+                        review.getCreatedAt(),
+                        review.getUpdatedAt()
+                ))
+                .toList();
+    }
+
+    public List<ReviewResponse> getReviewsByUserId(String userId) {
+        return reviewRepository.findByUserId(userId)
+                .stream()
+                .map(review -> new ReviewResponse(
+                        review.getId(),
+                        review.getTitle(),
+                        review.getDescription(),
+                        review.getFoodId(),
+                        review.getResturantId(),
+                        review.getUserId(),
+                        review.getReactionCountLike(),
+                        review.getReactionCountDislike(),
+                        review.getReactionUsersLike(),
+                        review.getReactionUsersDislike(),
+                        review.getComments(),
+                        review.getCreatedAt(),
+                        review.getUpdatedAt()
+                ))
+                .toList();
+    }
 
 
 }

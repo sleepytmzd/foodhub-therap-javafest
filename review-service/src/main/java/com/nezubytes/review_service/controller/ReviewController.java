@@ -3,14 +3,7 @@ package com.nezubytes.review_service.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.nezubytes.review_service.dto.ReviewRequest;
 import com.nezubytes.review_service.dto.ReviewResponse;
@@ -36,10 +29,35 @@ public class ReviewController {
        return reviewService.getAllResponse();
     }
 
-   @PutMapping("/{id}")
+    @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public ReviewResponse getReviewById(@PathVariable String id) {
+        return reviewService.getReviewById(id);
+    }
+
+    @GetMapping("/food/{foodId}")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ReviewResponse> getReviewsByFoodId(@PathVariable String foodId) {
+        return reviewService.getReviewsByFoodId(foodId);
+    }
+
+    @GetMapping("/user/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ReviewResponse> getReviewsByUserId(@PathVariable String userId) {
+        return reviewService.getReviewsByUserId(userId);
+    }
+
+
+    @PutMapping("/{id}")
    @ResponseStatus(HttpStatus.OK)
    public ReviewResponse updateFood(@PathVariable String id, @RequestBody ReviewRequest reviewRequest) {
        return reviewService.updateReview(id, reviewRequest);
    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteReview(@PathVariable String id) {
+        reviewService.deleteReview(id);
+    }
     
 }
