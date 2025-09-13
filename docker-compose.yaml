@@ -173,7 +173,23 @@ services:
       NEXT_PUBLIC_USER_SERVICE_URL: http://localhost:8084
     depends_on:
       - keycloak
-  
+
+  nutrition-predict-agent:
+    image: sleepytmzd/nutrition-predict-agent:v1
+    container_name: nutrition-predict-agent
+    ports:
+      - "8000:8000"
+    environment:
+      OPENAI_API_KEY: your_openai_api_key_here
+
+  recipe-agent:
+    image: sleepytmzd/recipe-agent:v1
+    container_name: recipe-agent
+    ports:
+      - "8001:8001"
+    environment:
+      OPENAI_API_KEY: your_openai_api_key_here
+
   # frontend:
   #   build:
   #     context: ./frontend

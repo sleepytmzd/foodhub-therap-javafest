@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useAuth } from "@/providers/AuthProvider";
 import { Button } from "./ui/button";
 
@@ -31,7 +32,9 @@ export default function AuthButton() {
   return (
     <div className="flex items-center gap-2">
       <div className="hidden sm:flex items-center px-3 py-1 rounded-md bg-muted/10 text-sm">
-        <span className="font-medium">{name}</span>
+        <Link href="/user" className="font-medium hover:underline">
+          {name}
+        </Link>
       </div>
       <Button
         size="sm"

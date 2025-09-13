@@ -5,6 +5,7 @@ import { ModeToggle } from "@/components/ModeToggle";
 // import { AuthButton } from "@/components/AuthButton";
 import { Button } from "@/components/ui/button";
 import AuthButton from "./AuthButton";
+import { Hamburger } from "lucide-react";
 
 export function Navbar() {
   return (
@@ -13,11 +14,12 @@ export function Navbar() {
       <div className="max-w-7xl w-full mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
-          <span className="text-xl font-bold">Foodhub</span>
+          <Hamburger/>
+          <span className="text-2xl font-bold">Foodhub</span>
         </Link>
 
         {/* Navigation Links */}
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-6 text-md font-medium">
           <Link href="/explore" className="transition-colors hover:text-primary">
             Explore
           </Link>
