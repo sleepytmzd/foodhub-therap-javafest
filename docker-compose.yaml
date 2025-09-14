@@ -116,6 +116,21 @@ services:
     depends_on:
       - mongodb1
       - image-service-sb
+  # food-service:
+  #   image: food-service-mvn
+  #   container_name: food-service
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     IMAGE_SERVICE_URL: http://image-service-sb:8080
+  #     MONGODB1_URL: mongodb://root:password@mongodb1:27017/product-service?authSource=admin
+  #     FRONTEND_URL: http://localhost:7000
+  #     KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+  #   # extra_hosts:
+  #   #   - "localhost:host-gateway"
+  #   depends_on:
+  #     - mongodb1
+  #     - image-service-sb
   visit-service:
     image: sleepytmzd/visit-service:v4       # Replace with your dockerhub username
     container_name: visit-service
@@ -174,21 +189,21 @@ services:
     depends_on:
       - keycloak
 
-  nutrition-predict-agent:
-    image: sleepytmzd/nutrition-predict-agent:v1
-    container_name: nutrition-predict-agent
-    ports:
-      - "8000:8000"
-    environment:
-      OPENAI_API_KEY: your_openai_api_key_here
+  # nutrition-predict-agent:
+  #   image: sleepytmzd/nutrition-predict-agent:v1
+  #   container_name: nutrition-predict-agent
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     OPENAI_API_KEY: your_openai_api_key_here
 
-  recipe-agent:
-    image: sleepytmzd/recipe-agent:v1
-    container_name: recipe-agent
-    ports:
-      - "8001:8001"
-    environment:
-      OPENAI_API_KEY: your_openai_api_key_here
+  # recipe-agent:
+  #   image: sleepytmzd/recipe-agent:v1
+  #   container_name: recipe-agent
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     OPENAI_API_KEY: your_openai_api_key_here
 
   # frontend:
   #   build:
