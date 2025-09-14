@@ -2,18 +2,26 @@ package com.nezubytes.food_service.controller;
 
 import java.util.List;
 
-import com.nezubytes.food_service.client.ImageClient;
-import com.nezubytes.food_service.dto.UploadResponseDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.nezubytes.food_service.client.ImageClient;
 import com.nezubytes.food_service.dto.FoodRequest;
 import com.nezubytes.food_service.dto.FoodResponse;
+import com.nezubytes.food_service.dto.UploadResponseDTO;
 import com.nezubytes.food_service.service.FoodService;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.multipart.MultipartFile;
 
 
 @RestController
@@ -45,7 +53,8 @@ public class FoodController {
                 foodRequest.nutrition_table(),
                 foodRequest.resturant_id(),
                 imageUrl,   // <-- replaced with the uploaded image URL
-                foodRequest.user_id()
+                foodRequest.user_id(),
+                foodRequest.price()
         );
 
         return foodService.createFood(updatedRequest);
@@ -55,6 +64,16 @@ public class FoodController {
     @ResponseStatus(HttpStatus.OK)
     public List<FoodResponse> getAllFood() {
         return foodService.getAllFoods();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<FoodResponse> getFoodById(@PathVariable String id) {
+        try {
+            FoodResponse food = foodService.getFoodById(id);
+            return ResponseEntity.ok(food);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
 //    @PutMapping("/{id}")
@@ -79,7 +98,8 @@ public class FoodController {
                     foodRequest.nutrition_table(),
                     foodRequest.resturant_id(),
                     imageUrl,   // <-- replaced with the uploaded image URL
-                    foodRequest.user_id()
+                    foodRequest.user_id(),
+                    foodRequest.price()
             );
         }
 

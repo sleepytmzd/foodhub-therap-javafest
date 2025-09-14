@@ -5,5 +5,5 @@ import org.springframework.web.service.annotation.PostExchange;
 
 public interface QdrantClient {
     @PostExchange("/add-point-food")
-    String add_point_food(@RequestParam String name, @RequestParam String description, @RequestParam String category, @RequestParam String nutrition_table, @RequestParam int price, @RequestParam String db_id);
+    String add_point_food(@RequestParam String name, @RequestParam String description, @RequestParam String category, @RequestParam String nutrition_table, @RequestParam Integer price, @RequestParam String db_id, @RequestParam String restaurant);
 }

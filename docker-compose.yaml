@@ -101,23 +101,8 @@ services:
       - "8085:8080"
     environment:
       CLOUDINARY_URL: cloudinary://941186935662824:i5ioWntb-8NFNNUPvncgCijswFE@dihf0za5q
-  food-service:
-    image: sleepytmzd/food-service:v3
-    container_name: food-service
-    ports:
-      - "8081:8081"
-    environment:
-      IMAGE_SERVICE_URL: http://image-service-sb:8080
-      MONGODB1_URL: mongodb://root:password@mongodb1:27017/product-service?authSource=admin
-      FRONTEND_URL: http://localhost:7000
-      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
-    # extra_hosts:
-    #   - "localhost:host-gateway"
-    depends_on:
-      - mongodb1
-      - image-service-sb
   # food-service:
-  #   image: food-service-mvn
+  #   image: sleepytmzd/food-service:v3
   #   container_name: food-service
   #   ports:
   #     - "8081:8081"
@@ -131,6 +116,23 @@ services:
   #   depends_on:
   #     - mongodb1
   #     - image-service-sb
+  food-service:
+    image: food-service-mvn:tamim
+    container_name: food-service
+    ports:
+      - "8081:8081"
+    environment:
+      RECOM_SERVICE_URL: http://recomm-agent-service:8020
+      IMAGE_SERVICE_URL: http://image-service-sb:8080
+      MONGODB1_URL: mongodb://root:password@mongodb1:27017/product-service?authSource=admin
+      FRONTEND_URL: http://localhost:7000
+      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+    # extra_hosts:
+    #   - "localhost:host-gateway"
+    depends_on:
+      - mongodb1
+      - image-service-sb
+      - recomm-agent-service
   visit-service:
     image: sleepytmzd/visit-service:v4       # Replace with your dockerhub username
     container_name: visit-service
@@ -188,6 +190,24 @@ services:
       NEXT_PUBLIC_USER_SERVICE_URL: http://localhost:8084
     depends_on:
       - keycloak
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC API
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
+
+  recomm-agent-service:
+    image: recom-agent:tamim # Replace with actual image for your OpenAI service
+    container_name: recomm-agent-service
+    ports:
+      - "8020:8020"
+    environment:
+      OPENAI_API_KEY: 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
+    depends_on:
+      - qdrant
 
   # nutrition-predict-agent:
   #   image: sleepytmzd/nutrition-predict-agent:v1

@@ -11,7 +11,7 @@ import uvicorn
 from pydantic import BaseModel
 
 # --- setup ---
-qdrant = QdrantClient("http://localhost:6333")
+qdrant = QdrantClient("http://qdrant:6333")
 openai_client = OpenAI()
 app = FastAPI()
 

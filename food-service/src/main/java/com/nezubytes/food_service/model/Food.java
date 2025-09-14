@@ -23,4 +23,5 @@ public class Food {
     private String resturant_id;
     private String image_url;
     private String user_id;
+    private Integer price;
 }
