@@ -171,6 +171,9 @@ services:
       NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: foodhub-kc
       NEXT_PUBLIC_VISIT_SERVICE_URL: http://localhost:8082
       NEXT_PUBLIC_USER_SERVICE_URL: http://localhost:8084
+      NEXT_PUBLIC_REVIEW_SERVICE_URL: http://localhost:8083
+      NEXT_PUBLIC_FOOD_SERVICE_URL: http://localhost:8081
+
     depends_on:
       - keycloak
 
