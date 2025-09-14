@@ -28,10 +28,7 @@ export function foodApiClient(baseUrl?: string, token?: string) {
   return api;
 }
 
-/* createFood supports optional image file. The backend expects multipart/form-data with:
-   - part "food" containing the JSON for FoodRequest (application/json)
-   - part "image" containing the file (multipart file)
-*/
+/* createFood supports optional image file (multipart) */
 export async function createFood(payload: FoodRequest, baseUrl?: string, token?: string, imageFile?: File | null) {
   const api = foodApiClient(baseUrl, token);
 
@@ -42,6 +39,8 @@ export async function createFood(payload: FoodRequest, baseUrl?: string, token?:
   form.append("food", jsonBlob);
   if (imageFile) {
     form.append("image", imageFile);
+    console.log("image file appended");
+    
   }
 
   // Do not set Content-Type header — axios/browser will set boundary automatically
@@ -63,3 +62,19 @@ export async function getFoodById(foodId: string, baseUrl?: string, token?: stri
   const resp = await api.get<FoodResponse>(`/api/food/${foodId}`);
   return resp.data as FoodResponse;
 }
+
+// new: updateFood - updates food fields (used to set resturant_id after restaurant creation)
+export async function updateFood(foodId: string, payload: Partial<FoodRequest>, baseUrl?: string, token?: string) {
+  const api = foodApiClient(baseUrl, token);
+  // send JSON body for updates (no image). If backend requires multipart, adjust later.
+  const form = new FormData();
+  const jsonBlob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+  form.append("food", jsonBlob);
+  const resp = await api.put<FoodResponse>(`/api/food/${foodId}`, form, {
+    headers: {
+      // ensure we don't override Content-Type
+    },
+  });
+  return resp.data as FoodResponse;
+}
+

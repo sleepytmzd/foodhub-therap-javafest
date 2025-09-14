@@ -102,7 +102,7 @@ services:
     environment:
       CLOUDINARY_URL: cloudinary://941186935662824:i5ioWntb-8NFNNUPvncgCijswFE@dihf0za5q
   food-service:
-    image: sleepytmzd/food-service:v3
+    image: sleepytmzd/food-service:v4
     container_name: food-service
     ports:
       - "8081:8081"

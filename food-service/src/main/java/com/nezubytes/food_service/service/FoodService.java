@@ -74,5 +74,20 @@ public class FoodService {
         );
     }
 
-   
+    public FoodResponse getFoodById(String id) {
+        Food food = foodRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Food not found with id: " + id));
+
+        return new FoodResponse(
+                food.getId(),
+                food.getF_name(),
+                food.getDescription(),
+                food.getCategory(),
+                food.getNutrition_table(),
+                food.getResturant_id(),
+                food.getImage_url(),
+                food.getUser_id()
+        );
+    }
+
 }   

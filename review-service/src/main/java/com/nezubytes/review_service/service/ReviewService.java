@@ -37,7 +37,8 @@ public class ReviewService {
             .updatedAt(reviewRequest.updatedAt())
             .build();
         
-        reviewRepository.save(review); 
+        reviewRepository.save(review);
+        System.out.println("Saved review: " + review);
 
         return new ReviewResponse(
             review.getId(),

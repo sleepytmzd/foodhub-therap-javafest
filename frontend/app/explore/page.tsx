@@ -12,9 +12,11 @@ import createApi from "@/lib/api";
 import { fetchRestaurantsFromVisits } from "@/lib/visitService";
 
 import FeedPost, { ReviewPost } from "@/components/explore/FeedPost";
-import RestaurantCard, { Restaurant } from "@/components/explore/RestaurantCard";
+import { Restaurant } from "@/components/explore/RestaurantCard";
 import ExploreSidebar from "@/components/explore/ExploreSidebar";
 import CreateReviewModal from "@/components/explore/CreateReviewModal";
+import { getVisitByRestaurantId } from "@/lib/visitService";
+import { getFoodById, FoodResponse } from "@/lib/foodService";
 
 type ReviewResponse = {
   id: string;
@@ -43,15 +45,16 @@ export default function ExplorePage() {
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [view, setView] = useState<"reviews" | "restaurants">("reviews");
   const [selectedReview, setSelectedReview] = useState<ReviewPost | null>(null);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
+  const [restaurantDetails, setRestaurantDetails] = useState<{ name: string; location: string; foods: FoodResponse[] } | null>(null);
+  const [showRestaurantModal, setShowRestaurantModal] = useState(false);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [showRestaurantModal, setShowRestaurantModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [commentsByReview, setCommentsByReview] = useState<Record<string, { id: string; user: string; text: string; time: string }[]>>({});
 
   const apiBase = process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL || "";
-  const userServiceBase = process.env.NEXT_PUBLIC_USER_SERVICE_URL || apiBase; // try user service or fallback
+  const userServiceBase = process.env.NEXT_PUBLIC_USER_SERVICE_URL || apiBase;
   const apiClient = () => {
     const api = createApi(apiBase);
     if (isAuth && keycloak?.token) {
@@ -68,7 +71,6 @@ export default function ExplorePage() {
     return api;
   };
 
-  // fetch user names for a list of userIds (best-effort; returns map of fetched names)
   const fetchUserNames = async (userIds: string[]): Promise<Record<string, string>> => {
     if (!userServiceBase || userIds.length === 0) return {};
     const api = userApiClient();
@@ -81,7 +83,6 @@ export default function ExplorePage() {
           const data = resp.data;
           if (data && data.name) newMap[id] = data.name;
         } catch {
-          // ignore failures
         }
       })
     );
@@ -89,7 +90,6 @@ export default function ExplorePage() {
     return newMap;
   };
 
-  // fetch reviews from backend and map to UI shape
   const fetchReviews = async () => {
     try {
       const api = apiClient();
@@ -97,13 +97,11 @@ export default function ExplorePage() {
       const data = resp.data || [];
       setRawReviews(data);
 
-      // gather userIds from reviews
       const ids = Array.from(new Set(data.map((d) => d.userId).filter(Boolean) as string[]));
       const fetchedNames = await fetchUserNames(ids);
 
       const mapped: ReviewPost[] = data.map((r) => {
         const username = userNames[r.userId ?? ""] ?? fetchedNames[r.userId ?? ""] ?? (r.userId ?? "User");
-        // map comment ids (ReviewResponse.comments is list of comment ids) to placeholder comment objects
         const commentsArr = (r.comments ?? []).map((cid) => ({ id: cid, user: "", text: "", time: "" }));
         return {
           id: r.id,
@@ -117,7 +115,6 @@ export default function ExplorePage() {
       });
       setPosts(mapped);
 
-      // init liked map from reactionUsersLike if user authenticated
       if (userId) {
         const likesMap: Record<string, boolean> = {};
         data.forEach((r) => {
@@ -131,10 +128,8 @@ export default function ExplorePage() {
     }
   };
 
-  // remove dummy list; use backend visits as restaurant source
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
 
-  // Fetch restaurants (visits) from backend
   const fetchRestaurants = async () => {
     try {
       const token = (keycloak as any)?.token;
@@ -150,7 +145,6 @@ export default function ExplorePage() {
       fetchReviews();
       fetchRestaurants();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized]);
 
   const filteredPosts = useMemo(() => {
@@ -164,7 +158,6 @@ export default function ExplorePage() {
     );
   }, [posts, query]);
 
-  // Filter restaurants by query
   const filteredRestaurants = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return restaurants;
@@ -176,11 +169,10 @@ export default function ExplorePage() {
     );
   }, [restaurants, query]);
 
-  // toggle like by sending ReviewRequest via PUT /api/review/{id}
   const toggleLike = async (id: string) => {
     if (!isAuth) return alert("Please sign in to like");
     try {
-      setLiked((s) => ({ ...s, [id]: !s[id] })); // optimistic
+      setLiked((s) => ({ ...s, [id]: !s[id] }));
       const api = apiClient();
       const found = rawReviews.find((r) => r.id === id);
       if (!found) {
@@ -211,7 +203,6 @@ export default function ExplorePage() {
       await fetchReviews();
     } catch (e) {
       console.error("toggleLike failed", e);
-      // rollback optimistic
       setLiked((s) => ({ ...s, [id]: !s[id] }));
     }
   };
@@ -223,7 +214,6 @@ export default function ExplorePage() {
       const api = apiClient();
       const resp = await api.get(`/api/comment/review/${post.id}`);
       const commentsData = resp.data || [];
-      // fetch names for commenters
       const commenterIds = Array.from(new Set(commentsData.map((c: any) => c.userId).filter(Boolean))) as string[];
       const fetchedNames = await fetchUserNames(commenterIds);
 
@@ -239,7 +229,6 @@ export default function ExplorePage() {
 
       setCommentsByReview((s) => ({ ...s, [post.id]: comments }));
 
-      // keep post comment count in sync with fetched comments
       setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, comments: comments.map((c: { id: any; user: any; text: any; time: any; }) => ({ id: c.id, user: c.user, text: c.text, time: c.time })) } : p)));
     } catch (e) {
       console.error("fetch comments failed", e);
@@ -263,15 +252,13 @@ export default function ExplorePage() {
         updatedAt: now,
       };
       await api.post("/api/comment", payload);
-      // refresh comments
       await openComments(posts.find((p) => p.id === reviewId)!);
     } catch (e) {
       console.error("postComment failed", e);
     }
   };
 
-  // parent handles the actual POST (modal no longer posts)
-  const handleCreate = async (newPost: { title: string; description: string; rating?: number }) => {
+  const handleCreate = async (newPost: { targetType: "food" | "restaurant" | "general", targetId?: string | null | undefined, title: string; description: string; rating?: number }) => {
     if (!isAuth) {
       alert("Please sign in to create review");
       return;
@@ -283,8 +270,8 @@ export default function ExplorePage() {
         id: null,
         title: newPost.title,
         description: newPost.description,
-        foodId: null,
-        resturantId: null,
+        foodId: newPost.targetType === "food" ? newPost.targetId ?? null : null,
+        resturantId: newPost.targetType === "restaurant" ? newPost.targetId ?? null : null,
         userId,
         reactionCountLike: 0,
         reactionCountDislike: 0,
@@ -295,12 +282,39 @@ export default function ExplorePage() {
         updatedAt: now,
       };
       await api.post("/api/review", payload);
-      // refresh reviews once
       await fetchReviews();
       setShowCreateModal(false);
     } catch (e) {
       console.error("create review failed", e);
       alert("Failed to create review");
+    }
+  };
+
+  // Restaurant details modal logic
+  const handleViewRestaurant = async (restaurantId: string) => {
+    setSelectedRestaurantId(restaurantId);
+    setShowRestaurantModal(true);
+    try {
+      const visit = await getVisitByRestaurantId(restaurantId, process.env.NEXT_PUBLIC_VISIT_SERVICE_URL, (keycloak as any)?.token);
+      const foodIds: string[] = visit.foods ?? [];
+      const foods: FoodResponse[] = [];
+      await Promise.all(
+        (foodIds || []).map(async (fid) => {
+          try {
+            const f = await getFoodById(fid, process.env.NEXT_PUBLIC_FOOD_SERVICE_URL, (keycloak as any)?.token);
+            foods.push(f);
+          } catch (e) {
+            // ignore missing food
+          }
+        })
+      );
+      setRestaurantDetails({
+        name: visit.resturantName ?? "Unknown",
+        location: visit.location ?? "Unknown location",
+        foods,
+      });
+    } catch (e) {
+      setRestaurantDetails(null);
     }
   };
 
@@ -340,7 +354,9 @@ export default function ExplorePage() {
             {view === "reviews" && (
               <>
                 {filteredPosts.length === 0 && <div className="rounded border p-4 text-center text-muted-foreground">No posts found.</div>}
-                {filteredPosts.map((post) => (
+                {filteredPosts
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((post) => (
                   <FeedPost
                     key={post.id}
                     post={post}
@@ -359,7 +375,35 @@ export default function ExplorePage() {
                 {filteredRestaurants.length === 0 && <div className="rounded border p-4 text-center text-muted-foreground">No restaurants found.</div>}
                 <div className="space-y-4">
                   {filteredRestaurants.map((r) => (
-                    <RestaurantCard key={r.id} r={r} onView={(rest) => { setSelectedRestaurant(rest); setShowRestaurantModal(true); }} />
+                    <article key={r.id} className="rounded-md border bg-card p-0 overflow-hidden shadow-sm">
+                      <div className="flex">
+                        <div className="flex-1 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-semibold">{r.name}</div>
+                              {r.address && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {r.address}
+                                </div>
+                              )}
+                              {r.location && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {r.location}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-3 flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleViewRestaurant(r.id)}
+                            >
+                              View details
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
                   ))}
                 </div>
               </>
@@ -394,110 +438,39 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      {/* Review modal */}
-      {showReviewModal && selectedReview && (
+      {/* Restaurant details modal */}
+      {showRestaurantModal && restaurantDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true">
           <div className="max-w-3xl w-full bg-card rounded-lg shadow-lg overflow-hidden">
-            <div className="p-4 border-b flex items-start gap-3">
-              <img src={selectedReview.user.avatar} alt={selectedReview.user.name} className="w-12 h-12 rounded-full object-cover" />
-              <div className="flex-1">
-                <div className="font-medium">{selectedReview.user.name}</div>
-                <div className="text-xs text-muted-foreground">{selectedReview.createdAt}</div>
-              </div>
-              <button onClick={() => setShowReviewModal(false)} className="p-2"><X className="w-5 h-5" /></button>
-            </div>
-
             <div className="p-6 space-y-4">
-              <h2 className="text-lg font-semibold">{selectedReview.title}</h2>
-              <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedReview.description}</div>
-
-              <div className="pt-4 border-t">
-                <h3 className="font-medium">Comments</h3>
-                <ul className="mt-3 space-y-3">
-                  {(commentsByReview[selectedReview.id] || []).length === 0 && <li className="text-sm text-muted-foreground">No comments yet.</li>}
-                  {(commentsByReview[selectedReview.id] || []).map((c) => (
-                    <li key={c.id} className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs">{c.user?.[0]}</div>
-                      <div>
-                        <div className="text-sm"><strong>{c.user}</strong> <span className="text-xs text-muted-foreground">· {c.time}</span></div>
-                        <div className="text-sm text-muted-foreground mt-1">{c.text}</div>
+              <div>
+                <h2 className="text-xl font-semibold">{restaurantDetails.name}</h2>
+                <div className="text-sm text-muted-foreground mt-1">{restaurantDetails.location}</div>
+              </div>
+              <div>
+                <h3 className="font-medium mt-4 mb-2">Foods</h3>
+                {restaurantDetails.foods.length === 0 && (
+                  <div className="text-sm text-muted-foreground">No foods linked to this restaurant.</div>
+                )}
+                <ul className="space-y-3">
+                  {restaurantDetails.foods.map((f) => (
+                    <li key={f.id} className="flex items-center gap-3">
+                      {f.image_url ? (
+                        <img src={f.image_url} alt={f.f_name} className="w-16 h-16 rounded object-cover border" />
+                      ) : (
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center text-xs">No image</div>
+                      )}
+                      <div className="flex-1">
+                        <div className="font-medium">{f.f_name}</div>
+                        {f.description && <div className="text-sm text-muted-foreground">{f.description}</div>}
+                        {/* <div className="text-xs text-muted-foreground mt-1">id: {f.id}</div> */}
                       </div>
                     </li>
                   ))}
                 </ul>
-
-                <div className="mt-4">
-                  {isAuth ? (
-                    <CommentInput onPost={async (text) => { await postComment(selectedReview.id, text); }} />
-                  ) : (
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <div>Sign in to post comments</div>
-                      <AuthButton />
-                    </div>
-                  )}
-                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Restaurant modal */}
-      {showRestaurantModal && selectedRestaurant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true">
-          <div className="max-w-3xl w-full bg-card rounded-lg shadow-lg overflow-hidden">
-            <div className="relative">
-              <div className="h-44 bg-cover bg-center" style={{ backgroundImage: `url(${selectedRestaurant.cover})` }} />
-              <button onClick={() => setShowRestaurantModal(false)} className="absolute right-3 top-3 p-2 rounded bg-card/60"><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold">{selectedRestaurant.name}</h2>
-                  <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-                    <div className="inline-flex items-center gap-1"><Star className="w-4 h-4 text-amber-500" /> {selectedRestaurant.rating.toFixed(1)}</div>
-                    {selectedRestaurant.address && <div className="inline-flex items-center gap-1">{selectedRestaurant.address}</div>}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="ghost">Bookmark</Button>
-                  <Button size="sm">Directions</Button>
-                </div>
-              </div>
-
-              <p className="text-sm text-muted-foreground">{selectedRestaurant.description}</p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium">Recent visits</h4>
-                  <ul className="mt-2 text-sm text-muted-foreground space-y-2">
-                    {(selectedRestaurant.recentVisits || []).map((v) => (
-                      <li key={v.id} className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{v.restaurantName}</div>
-                          <div className="text-xs text-muted-foreground">{(v.foods || []).slice(0, 3).join(", ")}</div>
-                        </div>
-                        <div className="text-xs text-muted-foreground">{v.time}</div>
-                      </li>
-                    ))}
-                    {(!selectedRestaurant.recentVisits || selectedRestaurant.recentVisits.length === 0) && <li className="text-sm text-muted-foreground">No recent visits recorded.</li>}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="font-medium">Tags</h4>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {(selectedRestaurant.tags || []).map((t) => (<span key={t} className="text-xs px-2 py-1 rounded border bg-muted/10">{t}</span>))}
-                    {(selectedRestaurant.tags || []).length === 0 && <div className="text-sm text-muted-foreground">No tags.</div>}
-                  </div>
-                </div>
-              </div>
-
               <div className="pt-4 border-t flex items-center justify-end gap-2">
                 <Button onClick={() => setShowRestaurantModal(false)} variant="ghost">Close</Button>
-                <a href={`/restaurants/${selectedRestaurant.id}`} className="inline-flex items-center px-4 py-2 rounded bg-primary text-primary-foreground">Open page</a>
               </div>
             </div>
           </div>
@@ -507,9 +480,8 @@ export default function ExplorePage() {
       {/* Create review modal */}
       <CreateReviewModal
         open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onOpenChange={setShowCreateModal}
         onCreate={async (p) => await handleCreate(p)}
-        user={isAuth ? { id: (keycloak as any)?.tokenParsed?.sub ?? "me", name: (keycloak as any)?.tokenParsed?.name ?? "You", avatar: undefined } : null}
       />
     </main>
   );

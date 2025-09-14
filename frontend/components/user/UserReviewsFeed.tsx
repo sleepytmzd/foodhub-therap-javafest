@@ -1,70 +1,62 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/providers/AuthProvider";
 import createApi from "@/lib/api";
 import FeedPost, { ReviewPost } from "@/components/explore/FeedPost";
-import { deleteReview } from "@/lib/reviewService";
+import { Button } from "@/components/ui/button";
 
 type ReviewResponse = {
   id: string;
-  title: string;
-  description: string;
-  foodId: string | null;
-  resturantId: string | null;
-  userId: string | null;
-  reactionCountLike: number;
-  reactionCountDislike: number;
-  reactionUsersLike: string[] | null;
-  reactionUsersDislike: string[] | null;
-  comments: string[] | null; // comment ids
-  createdAt: string | null;
-  updatedAt: string | null;
+  title?: string;
+  description?: string;
+  foodId?: string | null;
+  resturantId?: string | null;
+  userId?: string | null;
+  reactionCountLike?: number;
+  reactionCountDislike?: number;
+  reactionUsersLike?: string[] | null;
+  reactionUsersDislike?: string[] | null;
+  comments?: string[] | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
-export default function AllReviewsModal({
-  open,
-  onOpenChange,
+export default function UserReviewsFeed({
   profileUserId,
   profileUserName,
 }: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
   profileUserId: string;
   profileUserName?: string | null;
 }) {
   const { initialized, keycloak } = useAuth();
   const isAuth = !!(initialized && keycloak && (keycloak as any).authenticated);
+  const token = (keycloak as any)?.token ?? undefined;
+
   const [posts, setPosts] = useState<ReviewPost[]>([]);
   const [rawMap, setRawMap] = useState<Record<string, ReviewResponse>>({});
   const [commentsByReview, setCommentsByReview] = useState<Record<string, { id: string; user: string; text: string; time: string }[]>>({});
   const [liked, setLiked] = useState<Record<string, boolean>>({});
-
-  const reviewApiBase = process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL || "";
-  const userApiBase = process.env.NEXT_PUBLIC_USER_SERVICE_URL || reviewApiBase;
+  const [loading, setLoading] = useState(false);
 
   const reviewApi = () => {
-    const api = createApi(reviewApiBase);
-    if (isAuth && keycloak?.token) (api as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+    const api = createApi(process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL || "");
+    if (token) (api as any).defaults.headers.common["Authorization"] = `Bearer ${token}`;
     return api;
   };
   const userApi = () => {
-    const api = createApi(userApiBase);
-    if (isAuth && keycloak?.token) (api as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+    const api = createApi(process.env.NEXT_PUBLIC_USER_SERVICE_URL || "");
+    if (token) (api as any).defaults.headers.common["Authorization"] = `Bearer ${token}`;
     return api;
   };
 
-  // fetch all reviews and filter by profile user id, plus fetch comments and commenter names
   useEffect(() => {
-    if (!open) return;
+    if (!profileUserId) return;
     let cancelled = false;
-
     const load = async () => {
+      setLoading(true);
       try {
         const api = reviewApi();
-        // use server endpoint that returns reviews for a user
         const resp = await api.get<ReviewResponse[]>(`/api/review/user/${profileUserId}`);
         const mine = resp.data || [];
         const raw: Record<string, ReviewResponse> = {};
@@ -72,7 +64,6 @@ export default function AllReviewsModal({
         if (cancelled) return;
         setRawMap(raw);
 
-        // map to ReviewPost
         const mapped: ReviewPost[] = mine.map((r) => ({
           id: r.id,
           user: { id: r.userId ?? "unknown", name: profileUserName ?? (r.userId ?? "User"), avatar: undefined },
@@ -80,11 +71,10 @@ export default function AllReviewsModal({
           description: r.description ?? "",
           rating: undefined,
           createdAt: r.createdAt ? String(r.createdAt) : "",
-          comments: [], // will fill from commentsByReview
+          comments: [], // filled below
         }));
         setPosts(mapped);
 
-        // init liked map
         const myId = (keycloak as any)?.tokenParsed?.sub ?? null;
         const likesMap: Record<string, boolean> = {};
         mine.forEach((r) => {
@@ -98,15 +88,14 @@ export default function AllReviewsModal({
             try {
               const cResp = await api.get(`/api/comment/review/${r.id}`);
               const commentsData = cResp.data || [];
-              // fetch commenter names (best-effort)
               const commenterIds = Array.from(new Set(commentsData.map((c: any) => c.userId).filter(Boolean)));
               const nameMap: Record<string, string> = {};
               await Promise.all(
-                commenterIds.map(async (uid) => {
+                (commenterIds as string[]).map(async (uid: string) => {
                   try {
                     const uResp = await userApi().get(`/api/user/${uid}`);
                     const d = uResp.data;
-                    if (d && d.name) nameMap[uid as string] = d.name;
+                    if (d && (d as any).name) nameMap[uid] = (d as any).name;
                   } catch {
                     /* ignore */
                   }
@@ -120,21 +109,22 @@ export default function AllReviewsModal({
               }));
               if (!cancelled) setCommentsByReview((s) => ({ ...s, [r.id]: commentsMapped }));
             } catch {
-              // ignore per-review comment errors
+              // ignore
             }
           })
         );
       } catch (e) {
-        console.error("AllReviewsModal load failed", e);
+        console.error("Failed to load user reviews", e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
-
     load();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, profileUserId, profileUserName, initialized]);
+  }, [profileUserId, initialized]);
 
   const toggleLike = async (id: string) => {
     if (!isAuth) return alert("Please sign in to like");
@@ -162,10 +152,9 @@ export default function AllReviewsModal({
         updatedAt: new Date().toISOString(),
       };
       await reviewApi().put(`/api/review/${id}`, payload);
-      // refresh single review state
-      const refreshed = await reviewApi().get<ReviewResponse[]>("/api/review");
-      const found = (refreshed.data || []).find((r) => r.id === id);
-      if (found) setRawMap((m) => ({ ...m, [id]: found }));
+      // refresh raw map for that review
+      const refreshed = await reviewApi().get<ReviewResponse>(`/api/review/${id}`);
+      setRawMap((m) => ({ ...m, [id]: refreshed.data }));
     } catch (e) {
       console.error("toggleLike failed", e);
       setLiked((s) => ({ ...s, [id]: !s[id] }));
@@ -190,15 +179,14 @@ export default function AllReviewsModal({
       // refresh comments for that review
       const cResp = await api.get(`/api/comment/review/${reviewId}`);
       const commentsData = cResp.data || [];
-      // try to resolve commenter names
       const commenterIds = Array.from(new Set(commentsData.map((c: any) => c.userId).filter(Boolean)));
       const nameMap: Record<string, string> = {};
       await Promise.all(
-        commenterIds.map(async (uid) => {
+        (commenterIds as string[]).map(async (uid: string) => {
           try {
             const uResp = await userApi().get(`/api/user/${uid}`);
             const d = uResp.data;
-            if (d && d.name) nameMap[uid as string] = d.name;
+            if (d && (d as any).name) nameMap[uid] = (d as any).name;
           } catch {}
         })
       );
@@ -217,19 +205,10 @@ export default function AllReviewsModal({
   const handleDeleteReview = async (id: string) => {
     if (!confirm("Delete this review?")) return;
     try {
-      await deleteReview(id, process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL, (keycloak as any)?.token);
-      // remove from posts and rawMap and comments
+      await reviewApi().delete(`/api/review/${id}`);
       setPosts((s) => s.filter((p) => p.id !== id));
-      setRawMap((m) => {
-        const nm = { ...m };
-        delete nm[id];
-        return nm;
-      });
-      setCommentsByReview((c) => {
-        const nc = { ...c };
-        delete nc[id];
-        return nc;
-      });
+      setRawMap((m) => { const nm = { ...m }; delete nm[id]; return nm; });
+      setCommentsByReview((c) => { const nc = { ...c }; delete nc[id]; return nc; });
     } catch (e) {
       console.error("delete review failed", e);
       alert("Failed to delete review");
@@ -237,89 +216,86 @@ export default function AllReviewsModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
-        <DialogHeader>
-          <DialogTitle>All reviews</DialogTitle>
-        </DialogHeader>
+    <section className="space-y-4">
+      <div className="rounded-md border p-4 bg-card-foreground/5">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Reviews</h3>
+          {/* optional controls could go here */}
+        </div>
+      </div>
 
-        <div className="space-y-4 mt-2">
-          {posts.length === 0 && <div className="text-sm text-muted-foreground">No reviews yet.</div>}
+      <div className="space-y-6">
+        {loading && <div className="text-sm text-muted-foreground">Loading reviews…</div>}
+        {!loading && posts.length === 0 && <div className="text-sm text-muted-foreground">No reviews yet.</div>}
 
-          {posts.map((p) => (
-            <div key={p.id} className="rounded border p-3 bg-card">
-              <div className="flex justify-end">
-                <Button size="sm" variant="destructive" onClick={() => handleDeleteReview(p.id)}>Delete</Button>
-              </div>
-
-              <FeedPost
-                post={{
-                  ...p,
-                  comments: commentsByReview[p.id] ?? [],
-                }}
-                liked={!!liked[p.id]}
-                isAuth={isAuth}
-                onToggleLike={() => toggleLike(p.id)}
-                onOpenComments={() => {}}
-                onRequireAuth={() => alert("Please sign in to perform this action.")}
-              />
-
-              {/* Inline comments list + input */}
-              <div className="mt-3">
-                <h4 className="text-sm font-medium">Comments</h4>
-                <ul className="mt-2 space-y-2">
-                  {(commentsByReview[p.id] || []).length === 0 && <li className="text-sm text-muted-foreground">No comments yet.</li>}
-                  {(commentsByReview[p.id] || []).map((c) => (
-                    <li key={c.id} className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs">{c.user?.[0]}</div>
-                      <div>
-                        <div className="text-sm"><strong>{c.user}</strong> <span className="text-xs text-muted-foreground">· {c.time}</span></div>
-                        <div className="text-sm text-muted-foreground mt-1">{c.text}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-
-                {isAuth && (
-                  <div className="mt-3 flex gap-2">
-                    <input
-                      aria-label="Write comment"
-                      placeholder="Write a comment..."
-                      className="flex-1 rounded-md border px-3 py-2 bg-input"
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter") {
-                          const val = (e.target as HTMLInputElement).value.trim();
-                          if (!val) return;
-                          (e.target as HTMLInputElement).value = "";
-                          await postComment(p.id, val);
-                        }
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        // click handler posts using the first input found (simple)
-                        const inp = document.querySelector<HTMLInputElement>(`input[aria-label="Write comment"]`);
-                        if (!inp) return;
-                        const val = inp.value.trim();
-                        if (!val) return;
-                        inp.value = "";
-                        await postComment(p.id, val);
-                      }}
-                    >
-                      Post
-                    </Button>
-                  </div>
-                )}
-              </div>
+        {posts.map((p) => (
+          <div key={p.id} className="rounded border p-3 space-y-2 bg-card shadow-sm hover:shadow-md transition-shadow duration-150 ease-in-out">
+            <div className="flex justify-end mb-2 space-x-2">
+              {isAuth && <Button size="sm" variant="destructive" onClick={() => handleDeleteReview(p.id)}>Delete</Button>}
             </div>
-          ))}
-        </div>
 
-        <div className="mt-4 flex justify-end">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+            <FeedPost
+              post={{
+                ...p,
+                comments: commentsByReview[p.id] ?? [],
+              }}
+              liked={!!liked[p.id]}
+              isAuth={isAuth}
+              onToggleLike={() => toggleLike(p.id)}
+              onOpenComments={() => { /* comments displayed below already */ }}
+              onRequireAuth={() => alert("Please sign in to perform this action.")}
+            />
+
+            {/* Inline comments */}
+            <div className="mt-3 border-t pt-3 space-y-2">
+              <h4 className="text-sm font-medium">Comments</h4>
+              <ul className="mt-2 space-y-2">
+                {(commentsByReview[p.id] || []).length === 0 && <li className="text-sm text-muted-foreground">No comments yet.</li>}
+                {(commentsByReview[p.id] || []).map((c) => (
+                  <li key={c.id} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs">{c.user?.[0]}</div>
+                    <div>
+                      <div className="text-sm"><strong>{c.user}</strong> <span className="text-xs text-muted-foreground">· {c.time}</span></div>
+                      <div className="text-sm text-muted-foreground mt-1">{c.text}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {isAuth && (
+                <div className="mt-3 flex gap-2">
+                  <input
+                    aria-label={`Write comment for ${p.id}`}
+                    placeholder="Write a comment..."
+                    className="flex-1 rounded-md border px-3 py-2 bg-input"
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        if (!val) return;
+                        (e.target as HTMLInputElement).value = "";
+                        await postComment(p.id, val);
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      const inp = document.querySelector<HTMLInputElement>(`input[aria-label="Write comment for ${p.id}"]`);
+                      if (!inp) return;
+                      const val = inp.value.trim();
+                      if (!val) return;
+                      inp.value = "";
+                      await postComment(p.id, val);
+                    }}
+                  >
+                    Post
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

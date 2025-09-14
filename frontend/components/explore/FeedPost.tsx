@@ -4,6 +4,7 @@ import React from "react";
 import { Heart, MessageSquare, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { formatDistanceToNow } from "date-fns";
 
 type Comment = { id: string; user: string; text: string; time: string };
 export type ReviewPost = {
@@ -43,11 +44,11 @@ export default function FeedPost({
         </Avatar>
 
         <div className="flex-1">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div>
               <div className="font-medium">{post.user.name}</div>
               <div className="text-xs text-muted-foreground">
-                {post.createdAt} {post.rating ? `· ⭐ ${post.rating}` : null}
+                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })} {post.rating ? `· ⭐ ${post.rating}` : null}
               </div>
             </div>
 
@@ -56,8 +57,10 @@ export default function FeedPost({
             </button>
           </div>
 
-          <h3 className="mt-3 font-semibold">{post.title}</h3>
-          <p className="mt-2 text-sm text-muted-foreground line-clamp-4">{post.description}</p>
+          <div className="mt-2 text-foreground">
+            <h3 className="mt-3 font-semibold">{post.title}</h3>
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-4">{post.description}</p>
+          </div>
 
           <div className="mt-3 flex items-center gap-3">
             <Button

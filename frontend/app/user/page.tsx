@@ -5,8 +5,7 @@ import createApi from "@/lib/api";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import AllReviewsModal from "@/components/user/AllReviewsModal";
-import AllVisitsModal from "@/components/user/AllVisitsModal";
+import UserReviewsFeed from "@/components/user/UserReviewsFeed";
 
 type User = {
   id: string;
@@ -47,10 +46,10 @@ export default function UserProfilePage() {
 
   // replaced dummy arrays with real data fetched from backend
   const [reviews, setReviews] = useState<ReviewMini[]>([]);
-  const [visits, setVisits] = useState<VisitMini[]>([]);
+  // const [visits, setVisits] = useState<VisitMini[]>([]);
 
   const [showAllReviews, setShowAllReviews] = useState(false);
-  const [showAllVisits, setShowAllVisits] = useState(false);
+  // const [showAllVisits, setShowAllVisits] = useState(false);
 
   const fallbackCover =
     "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80";
@@ -66,7 +65,7 @@ export default function UserProfilePage() {
         if (!sub) {
           setUser(null);
           setReviews([]);
-          setVisits([]);
+          // setVisits([]);
           setLoading(false);
           return;
         }
@@ -105,10 +104,9 @@ export default function UserProfilePage() {
         try {
           const reviewApi = createApi(process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL || "");
           if (keycloak?.token) (reviewApi as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
-          const rResp = await reviewApi.get("/api/review");
-          const allReviews = (rResp.data || []) as any[];
-          const mine = allReviews
-            .filter((r) => String(r.userId) === String(sub))
+          const rResp = await reviewApi.get(`/api/review/user/${sub}`);
+          const userReviews = (rResp.data || []) as any[];
+          const mapped = userReviews
             .map((r) => ({
               id: r.id,
               title: r.title,
@@ -118,32 +116,32 @@ export default function UserProfilePage() {
             }))
             // sort newest first by createdAt if available
             .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-          setReviews(mine);
+          setReviews(mapped);
         } catch (err) {
           console.error("failed to fetch reviews", err);
           setReviews([]);
         }
 
         // fetch visits and filter by userId
-        try {
-          const visitApi = createApi(process.env.NEXT_PUBLIC_VISIT_SERVICE_URL || "");
-          if (keycloak?.token) (visitApi as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
-          const vResp = await visitApi.get("/api/visit");
-          const allVisits = (vResp.data || []) as any[];
-          const myVisits = allVisits
-            .filter((v) => String(v.userId) === String(sub))
-            .map((v) => ({
-              id: v.id,
-              restaurantName: v.resturantName ?? v.resturantName ?? "Unknown",
-              time: v.time ?? "",
-              location: v.location ?? null,
-            }))
-            .sort((a, b) => (b.time || "").localeCompare(a.time || ""));
-          setVisits(myVisits);
-        } catch (err) {
-          console.error("failed to fetch visits", err);
-          setVisits([]);
-        }
+        // try {
+        //   const visitApi = createApi(process.env.NEXT_PUBLIC_VISIT_SERVICE_URL || "");
+        //   if (keycloak?.token) (visitApi as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+        //   const vResp = await visitApi.get("/api/visit");
+        //   const allVisits = (vResp.data || []) as any[];
+        //   const myVisits = allVisits
+        //     .filter((v) => String(v.userId) === String(sub))
+        //     .map((v) => ({
+        //       id: v.id,
+        //       restaurantName: v.resturantName ?? v.resturantName ?? "Unknown",
+        //       time: v.time ?? "",
+        //       location: v.location ?? null,
+        //     }))
+        //     .sort((a, b) => (b.time || "").localeCompare(a.time || ""));
+        //   setVisits(myVisits);
+        // } catch (err) {
+        //   console.error("failed to fetch visits", err);
+        //   setVisits([]);
+        // }
       } finally {
         setLoading(false);
       }
@@ -182,12 +180,12 @@ export default function UserProfilePage() {
   const fullName = user.name ?? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
   const followersCount = user.followers?.length ?? 0;
   const followingCount = user.following?.length ?? 0;
-  const visitsCount = visits.length;
+  // const visitsCount = visits.length;
   const score = user.totalCriticScore ?? 0;
 
   // only show the latest 3 on the sidebar
   const latestReviews = reviews.slice(0, 3);
-  const latestVisits = visits.slice(0, 3);
+  // const latestVisits = visits.slice(0, 3);
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10">
@@ -229,10 +227,10 @@ export default function UserProfilePage() {
                   <div className="text-lg font-semibold">{followingCount}</div>
                   <div className="text-xs text-muted-foreground">Following</div>
                 </div>
-                <div>
+                {/* <div>
                   <div className="text-lg font-semibold">{visitsCount}</div>
                   <div className="text-xs text-muted-foreground">Visits</div>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -258,7 +256,7 @@ export default function UserProfilePage() {
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Left: wider content */}
             <div className="md:col-span-2 space-y-4">
-              <div className="rounded-md border p-4 bg-card-foreground/5">
+              {/* <div className="rounded-md border p-4 bg-card-foreground/5">
                 <h3 className="font-semibold">Recent activity</h3>
 
                 <div className="mt-4">
@@ -267,7 +265,8 @@ export default function UserProfilePage() {
                     {user.locationRecommendations?.slice(0, 5).join(", ") || "No recommendations yet."}
                   </p>
                 </div>
-              </div>
+              </div> */}
+              <UserReviewsFeed profileUserId={user.id} profileUserName={fullName} />
             </div>
 
             {/* Right: sidebar with two horizontal subsections (stacked vertically) */}
@@ -294,7 +293,7 @@ export default function UserProfilePage() {
               </div>
 
               {/* Bottom: Recent visits */}
-              <div className="rounded-md border p-4 bg-card-foreground/5">
+              {/* <div className="rounded-md border p-4 bg-card-foreground/5">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">Recent visits</h3>
                   <div className="flex items-center gap-2">
@@ -314,19 +313,14 @@ export default function UserProfilePage() {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </div> */}
             </aside>
           </div>
         </div>
       </div>
 
-      <AllReviewsModal
-        open={showAllReviews}
-        onOpenChange={setShowAllReviews}
-        profileUserId={user.id}
-        profileUserName={fullName}
-      />
-      <AllVisitsModal open={showAllVisits} onOpenChange={setShowAllVisits} visits={visits} />
+      {/* reviews are shown inline in the left column via UserReviewsFeed */}
+      {/* <AllVisitsModal open={showAllVisits} onOpenChange={setShowAllVisits} visits={visits} /> */}
     </main>
   );
 }

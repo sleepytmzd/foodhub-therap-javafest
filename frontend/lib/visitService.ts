@@ -35,7 +35,7 @@ export async function fetchRestaurantsFromVisits(baseUrl: string, token?: string
       name,
       description: `${arr.length} recent visit${arr.length > 1 ? "s" : ""}`,
       rating: 4.6, // static default rating (adjust if you have real ratings)
-      address: sample.location ?? undefined,
+      location: sample.location ?? undefined,
       cover: "/images/restaurant-placeholder.jpg", // fallback cover; change if you have images
       tags: [],
       recentVisits: arr.map((v) => ({
@@ -49,6 +49,23 @@ export async function fetchRestaurantsFromVisits(baseUrl: string, token?: string
 
   return restaurants;
 }
+
+// export async function fetchRestaurantsFromVisits(baseUrl: string, token?: string) {
+//   const apiBase = baseUrl || process.env.NEXT_PUBLIC_VISIT_SERVICE_URL || "";
+//   const api = createApi(apiBase);
+//   if (token) (api as any).defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+//   const resp = await api.get<VisitDto[]>("/api/visit");
+//   const visits: VisitDto[] = resp.data || [];
+
+//   // Just return visits as-is; they represent restaurants
+//   return visits.map((v) => ({
+//     id: v.id,
+//     resturantName: v.resturantName ?? "Unknown",
+//     location: v.location ?? "Unknown location",
+//     foods: v.foods ?? [],
+//   }));
+// }
 
 export type VisitRequest = {
   id: string | null;
@@ -95,5 +112,11 @@ export async function deleteVisit(visitId: string, baseUrl?: string, token?: str
 export async function getVisitById(visitId: string, baseUrl?: string, token?: string) {
   const api = visitApiClient(baseUrl, token);
   const resp = await api.get<VisitResponse>(`/api/visit/${visitId}`);
+  return resp.data as VisitResponse;
+}
+
+export async function getVisitByRestaurantId(restaurantId: string, baseUrl?: string, token?: string) {
+  const api = visitApiClient(baseUrl, token);
+  const resp = await api.get<VisitResponse>(`/api/visit/id/${restaurantId}`);
   return resp.data as VisitResponse;
 }

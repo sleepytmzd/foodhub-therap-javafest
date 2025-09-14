@@ -86,7 +86,14 @@ public class FoodController {
         return foodService.updateFood(id, foodRequest);
     }
 
-    
+    @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public FoodResponse getFoodById(@PathVariable String id) {
+        return foodService.getFoodById(id);
+    }
+
+
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public String deleteFood(@PathVariable String id) {
