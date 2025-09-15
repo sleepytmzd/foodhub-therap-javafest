@@ -55,6 +55,17 @@ services:
       MONGO_INITDB_DATABASE: recommendation-service
     volumes:
       - ./data/mongodb6:/data/db
+  mongodb6:
+    image: mongo:7.0.5
+    container_name: mongodb-hang
+    ports:
+      - "27022:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: hangout-service
+    volumes:
+      - ./data/mongodb7:/data/db
   postgres-kc:
     image: postgres:17.6
     container_name: postgres-kc 
@@ -270,6 +281,21 @@ services:
       - "8021:8021"
     environment:
       GEMINI_API_KEY: AIzaSyBjt0UbNnk-OVkJuxp0zXY2826UhPAbDQc
+
+  hangout-service:
+    image: hangout-service:tamim       # Replace with your dockerhub username
+    container_name: hangout-service
+    ports:
+      - "8091:8091"
+    environment:
+      MONGODB6_URL: mongodb://root:password@mongodb6:27017/hangout-service?authSource=admin
+      FRONTEND_URL: http://localhost:7000
+      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+    extra_hosts:
+      - "localhost:host-gateway"
+    depends_on:
+      - mongodb6
+
 
 
   # nutrition-predict-agent:
