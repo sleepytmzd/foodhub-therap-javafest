@@ -34,7 +34,18 @@ public class FoodService {
                     .build();
         foodRepository.save(food); 
 
-        qdrantClient.add_point_food(food.getF_name(), food.getDescription(), food.getCategory(), food.getNutrition_table(), food.getPrice(), food.getId(), "Ksu ekta"); 
+
+        // qdrantClient.add_point_food(food.getF_name(), food.getDescription(), food.getCategory(), food.getNutrition_table(), food.getPrice(), food.getId(), "Ksu ekta"); 
+        
+        qdrantClient.add_point_food(
+                (food.getF_name() != null && !food.getF_name().isEmpty()) ? food.getF_name() : "deynai", 
+                (food.getDescription() != null && !food.getDescription().isEmpty()) ? food.getDescription() : "deynai", 
+                (food.getCategory() != null && !food.getCategory().isEmpty()) ? food.getCategory() : "deynai", 
+                (food.getNutrition_table() != null && !food.getNutrition_table().isEmpty()) ? food.getNutrition_table() : "deynai", 
+                food.getPrice() != null ? food.getPrice() : 0,  // Default price to 0 if null
+                (food.getId() != null && !food.getId().isEmpty()) ? food.getId() : "deynai",
+                (food.getResturant_id() != null && !food.getResturant_id().isEmpty()) ? food.getResturant_id() : "deynai"
+            );
 
         return new FoodResponse(food.getId(), food.getDescription(), food.getF_name(), food.getCategory(), food.getNutrition_table(), food.getResturant_id(), food.getImage_url(), food.getUser_id(), food.getPrice()); 
     }

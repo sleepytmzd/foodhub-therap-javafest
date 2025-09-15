@@ -3,7 +3,15 @@ package com.nezubytes.review_service.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.nezubytes.review_service.dto.ReviewRequest;
 import com.nezubytes.review_service.dto.ReviewResponse;
@@ -47,8 +55,14 @@ public class ReviewController {
         return reviewService.getReviewsByUserId(userId);
     }
 
+    @GetMapping("/restaurant/{restaurantId}")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ReviewResponse> getReviewsByRestaurantId(@PathVariable String restaurantId) {
+        return reviewService.getReviewsByRestaurantId(restaurantId);
+    }
 
-    @PutMapping("/{id}")
+
+   @PutMapping("/{id}")
    @ResponseStatus(HttpStatus.OK)
    public ReviewResponse updateFood(@PathVariable String id, @RequestBody ReviewRequest reviewRequest) {
        return reviewService.updateReview(id, reviewRequest);
@@ -60,4 +74,27 @@ public class ReviewController {
         reviewService.deleteReview(id);
     }
     
+    @PostMapping("/{id}/like/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ReviewResponse increaseLike(@PathVariable String id, @PathVariable String userId) {
+        return reviewService.increaseLike(id, userId);
+    }
+
+    @PostMapping("/{id}/dislike/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ReviewResponse increaseDislike(@PathVariable String id, @PathVariable String userId) {
+        return reviewService.increaseDislike(id, userId);
+    }
+
+    @DeleteMapping("/{id}/like/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ReviewResponse decreaseLike(@PathVariable String id, @PathVariable String userId) {
+        return reviewService.decreaseLike(id, userId);
+    }
+
+    @DeleteMapping("/{id}/dislike/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ReviewResponse decreaseDislike(@PathVariable String id, @PathVariable String userId) {
+        return reviewService.decreaseDislike(id, userId);
+    }
 }

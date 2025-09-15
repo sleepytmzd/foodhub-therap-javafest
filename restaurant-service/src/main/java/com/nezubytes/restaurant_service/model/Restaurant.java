@@ -24,7 +24,7 @@ public class Restaurant {
     private String location;
     private String description;
     private String category;
-    private String weblink; 
+    private String weblink;
 
     // Reference to Food IDs
     private List<String> foodIds;

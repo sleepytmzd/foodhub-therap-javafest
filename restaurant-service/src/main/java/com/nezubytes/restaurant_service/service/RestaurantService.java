@@ -71,4 +71,46 @@ public class RestaurantService {
         );
     }
 
+    public RestaurantResponse updateRestaurant(String id, RestaurantRequest restaurantRequest) {
+        
+        Restaurant restaurant = restaurantRepositoy.findById(id)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found with id: " + id));
+
+        
+        restaurant.setName(restaurantRequest.name() != null ? restaurantRequest.name() : restaurant.getName());
+        restaurant.setLocation(restaurantRequest.location() != null ? restaurantRequest.location() : restaurant.getLocation());
+        restaurant.setDescription(restaurantRequest.description() != null ? restaurantRequest.description() : restaurant.getDescription());
+        restaurant.setCategory(restaurantRequest.category() != null ? restaurantRequest.category() : restaurant.getCategory());
+        restaurant.setWeblink(restaurantRequest.weblink() != null ? restaurantRequest.weblink() : restaurant.getWeblink());
+
+        
+        if (restaurantRequest.foodIdList() != null && !restaurantRequest.foodIdList().isEmpty()) {
+            List<String> existingFoodIds = restaurant.getFoodIds();
+            
+            
+            for (String foodId : restaurantRequest.foodIdList()) {
+                if (!existingFoodIds.contains(foodId)) {
+                    existingFoodIds.add(foodId);
+                }
+            }
+            
+            
+            restaurant.setFoodIds(existingFoodIds);
+        }
+
+        
+        Restaurant updatedRestaurant = restaurantRepositoy.save(restaurant);
+
+        
+        return new RestaurantResponse(
+                updatedRestaurant.getId(),
+                updatedRestaurant.getName(),
+                updatedRestaurant.getLocation(),
+                updatedRestaurant.getDescription(),
+                updatedRestaurant.getCategory(),
+                updatedRestaurant.getWeblink(),
+                updatedRestaurant.getFoodIds()
+        );
+    }
+
 }

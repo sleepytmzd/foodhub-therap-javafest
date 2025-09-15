@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.nezubytes.review_service.client.NegPosClient;
 import com.nezubytes.review_service.dto.ReviewRequest;
 import com.nezubytes.review_service.dto.ReviewResponse;
 import com.nezubytes.review_service.model.Review;
@@ -21,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ReviewService {
     private  final ReviewRepository reviewRepository;
 
+    private final NegPosClient negPosClient; 
+
     public ReviewResponse createReview(ReviewRequest reviewRequest){
         Review review = Review.builder()
             .title(reviewRequest.title())
@@ -35,8 +38,12 @@ public class ReviewService {
             .comments(reviewRequest.comments())
             .createdAt(reviewRequest.createdAt())
             .updatedAt(reviewRequest.updatedAt())
+            .sentiment(reviewRequest.sentiment())
             .build();
         
+        NegPosClient.SentimentResponse response = negPosClient.analyze_sentiment(review.getDescription());
+        review.setSentiment(response.sentiment());
+
         reviewRepository.save(review); 
 
         return new ReviewResponse(
@@ -52,7 +59,8 @@ public class ReviewService {
             review.getReactionUsersDislike(),
             review.getComments(),
             review.getCreatedAt(),
-            review.getUpdatedAt()
+            review.getUpdatedAt(),
+            review.getSentiment()
         );
     }
 
@@ -72,7 +80,8 @@ public class ReviewService {
                     review.getReactionUsersDislike(),
                     review.getComments(),
                     review.getCreatedAt(),
-                    review.getUpdatedAt()
+                    review.getUpdatedAt(),
+                    review.getSentiment()
                 ))
                 .toList();
     }
@@ -123,7 +132,7 @@ public class ReviewService {
             review.getComments().addAll(reviewRequest.comments());
         }
 
-        // Always update timestamp
+        
         review.setUpdatedAt(LocalDateTime.now());
 
         Review updatedReview = reviewRepository.save(review);
@@ -141,7 +150,8 @@ public class ReviewService {
             updatedReview.getReactionUsersDislike(),
             updatedReview.getComments(),
             updatedReview.getCreatedAt(),
-            updatedReview.getUpdatedAt()
+            updatedReview.getUpdatedAt(),
+            updatedReview.getSentiment()
         );
     }
 
@@ -169,7 +179,8 @@ public class ReviewService {
                 review.getReactionUsersDislike(),
                 review.getComments(),
                 review.getCreatedAt(),
-                review.getUpdatedAt()
+                review.getUpdatedAt(),
+                review.getSentiment()
         );
     }
 
@@ -189,7 +200,8 @@ public class ReviewService {
                         review.getReactionUsersDislike(),
                         review.getComments(),
                         review.getCreatedAt(),
-                        review.getUpdatedAt()
+                        review.getUpdatedAt(),
+                        review.getSentiment()
                 ))
                 .toList();
     }
@@ -210,9 +222,196 @@ public class ReviewService {
                         review.getReactionUsersDislike(),
                         review.getComments(),
                         review.getCreatedAt(),
-                        review.getUpdatedAt()
+                        review.getUpdatedAt(),
+                        review.getSentiment()
                 ))
                 .toList();
+    }
+
+    public List<ReviewResponse> getReviewsByRestaurantId(String restaurantId) {
+        return reviewRepository.findByResturantId(restaurantId)
+                .stream()
+                .map(review -> new ReviewResponse(
+                        review.getId(),
+                        review.getTitle(),
+                        review.getDescription(),
+                        review.getFoodId(),
+                        review.getResturantId(),
+                        review.getUserId(),
+                        review.getReactionCountLike(),
+                        review.getReactionCountDislike(),
+                        review.getReactionUsersLike(),
+                        review.getReactionUsersDislike(),
+                        review.getComments(),
+                        review.getCreatedAt(),
+                        review.getUpdatedAt(),
+                        review.getSentiment()
+                ))
+                .toList();
+    }
+
+    public ReviewResponse increaseLike(String reviewId, String userId) {
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new RuntimeException("Review not found with id: " + reviewId));
+
+        // Initialize list if null
+        if (review.getReactionUsersLike() == null) {
+            review.setReactionUsersLike(new ArrayList<>());
+        }
+
+        // Check if user already liked this review
+        if (review.getReactionUsersLike().contains(userId)) {
+            throw new RuntimeException("User has already liked this review");
+        }
+
+        // Remove from dislike list if user previously disliked
+        if (review.getReactionUsersDislike() != null && review.getReactionUsersDislike().contains(userId)) {
+            review.getReactionUsersDislike().remove(userId);
+            int currentDislikeCount = review.getReactionCountDislike() != null ? review.getReactionCountDislike() : 0;
+            review.setReactionCountDislike(Math.max(0, currentDislikeCount - 1));
+        }
+
+        // Add to like list and increment count
+        review.getReactionUsersLike().add(userId);
+        int currentLikeCount = review.getReactionCountLike() != null ? review.getReactionCountLike() : 0;
+        review.setReactionCountLike(currentLikeCount + 1);
+        review.setUpdatedAt(LocalDateTime.now());
+
+        Review updatedReview = reviewRepository.save(review);
+
+        return new ReviewResponse(
+            updatedReview.getId(),
+            updatedReview.getTitle(),
+            updatedReview.getDescription(),
+            updatedReview.getFoodId(),
+            updatedReview.getResturantId(),
+            updatedReview.getUserId(),
+            updatedReview.getReactionCountLike(),
+            updatedReview.getReactionCountDislike(),
+            updatedReview.getReactionUsersLike(),
+            updatedReview.getReactionUsersDislike(),
+            updatedReview.getComments(),
+            updatedReview.getCreatedAt(),
+            updatedReview.getUpdatedAt(),
+            updatedReview.getSentiment()
+        );
+    }
+
+    public ReviewResponse increaseDislike(String reviewId, String userId) {
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new RuntimeException("Review not found with id: " + reviewId));
+
+        // Initialize list if null
+        if (review.getReactionUsersDislike() == null) {
+            review.setReactionUsersDislike(new ArrayList<>());
+        }
+
+        // Check if user already disliked this review
+        if (review.getReactionUsersDislike().contains(userId)) {
+            throw new RuntimeException("User has already disliked this review");
+        }
+
+        // Remove from like list if user previously liked
+        if (review.getReactionUsersLike() != null && review.getReactionUsersLike().contains(userId)) {
+            review.getReactionUsersLike().remove(userId);
+            int currentLikeCount = review.getReactionCountLike() != null ? review.getReactionCountLike() : 0;
+            review.setReactionCountLike(Math.max(0, currentLikeCount - 1));
+        }
+
+        // Add to dislike list and increment count
+        review.getReactionUsersDislike().add(userId);
+        int currentDislikeCount = review.getReactionCountDislike() != null ? review.getReactionCountDislike() : 0;
+        review.setReactionCountDislike(currentDislikeCount + 1);
+        review.setUpdatedAt(LocalDateTime.now());
+
+        Review updatedReview = reviewRepository.save(review);
+
+        return new ReviewResponse(
+            updatedReview.getId(),
+            updatedReview.getTitle(),
+            updatedReview.getDescription(),
+            updatedReview.getFoodId(),
+            updatedReview.getResturantId(),
+            updatedReview.getUserId(),
+            updatedReview.getReactionCountLike(),
+            updatedReview.getReactionCountDislike(),
+            updatedReview.getReactionUsersLike(),
+            updatedReview.getReactionUsersDislike(),
+            updatedReview.getComments(),
+            updatedReview.getCreatedAt(),
+            updatedReview.getUpdatedAt(),
+            updatedReview.getSentiment()
+        );
+    }
+
+    public ReviewResponse decreaseLike(String reviewId, String userId) {
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new RuntimeException("Review not found with id: " + reviewId));
+
+        // Check if user has liked this review
+        if (review.getReactionUsersLike() == null || !review.getReactionUsersLike().contains(userId)) {
+            throw new RuntimeException("User has not liked this review");
+        }
+
+        // Remove from like list and decrement count
+        review.getReactionUsersLike().remove(userId);
+        int currentLikeCount = review.getReactionCountLike() != null ? review.getReactionCountLike() : 0;
+        review.setReactionCountLike(Math.max(0, currentLikeCount - 1));
+        review.setUpdatedAt(LocalDateTime.now());
+
+        Review updatedReview = reviewRepository.save(review);
+
+        return new ReviewResponse(
+            updatedReview.getId(),
+            updatedReview.getTitle(),
+            updatedReview.getDescription(),
+            updatedReview.getFoodId(),
+            updatedReview.getResturantId(),
+            updatedReview.getUserId(),
+            updatedReview.getReactionCountLike(),
+            updatedReview.getReactionCountDislike(),
+            updatedReview.getReactionUsersLike(),
+            updatedReview.getReactionUsersDislike(),
+            updatedReview.getComments(),
+            updatedReview.getCreatedAt(),
+            updatedReview.getUpdatedAt(),
+            updatedReview.getSentiment()
+        );
+    }
+
+    public ReviewResponse decreaseDislike(String reviewId, String userId) {
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new RuntimeException("Review not found with id: " + reviewId));
+
+        // Check if user has disliked this review
+        if (review.getReactionUsersDislike() == null || !review.getReactionUsersDislike().contains(userId)) {
+            throw new RuntimeException("User has not disliked this review");
+        }
+
+        // Remove from dislike list and decrement count
+        review.getReactionUsersDislike().remove(userId);
+        int currentDislikeCount = review.getReactionCountDislike() != null ? review.getReactionCountDislike() : 0;
+        review.setReactionCountDislike(Math.max(0, currentDislikeCount - 1));
+        review.setUpdatedAt(LocalDateTime.now());
+
+        Review updatedReview = reviewRepository.save(review);
+
+        return new ReviewResponse(
+            updatedReview.getId(),
+            updatedReview.getTitle(),
+            updatedReview.getDescription(),
+            updatedReview.getFoodId(),
+            updatedReview.getResturantId(),
+            updatedReview.getUserId(),
+            updatedReview.getReactionCountLike(),
+            updatedReview.getReactionCountDislike(),
+            updatedReview.getReactionUsersLike(),
+            updatedReview.getReactionUsersDislike(),
+            updatedReview.getComments(),
+            updatedReview.getCreatedAt(),
+            updatedReview.getUpdatedAt(),
+            updatedReview.getSentiment()
+        );
     }
 
 
