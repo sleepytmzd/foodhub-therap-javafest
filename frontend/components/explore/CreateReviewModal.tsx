@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "../ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
@@ -48,8 +49,10 @@ export default function CreateReviewModal({
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<any | null>(null);
 
+  const [loading, setLoading] = useState(true);
   // fetch all foods once per modal open
   const fetchFoods = async () => {
+    setLoading(true);
     try {
       const api = createApi(process.env.NEXT_PUBLIC_FOOD_SERVICE_URL || "");
       if (token) (api as any).defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -58,16 +61,21 @@ export default function CreateReviewModal({
     } catch (e) {
       console.error("fetchFoods failed", e);
       setFoods([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchRestaurants = async () => {
+    setLoading(true);
     try {
       const data = await fetchRestaurantsFromVisits(process.env.NEXT_PUBLIC_VISIT_SERVICE_URL || "", token);
       setRestaurants(data);
     } catch (e) {
       console.error("fetchRestaurants failed", e);
       setRestaurants([]);
+    } finally {
+      setLoading(false);;
     }
   };
 
@@ -187,8 +195,15 @@ export default function CreateReviewModal({
               </div>
               <Input value={foodQuery} onChange={(e) => setFoodQuery(e.target.value)} placeholder="Search foods..." />
               <div className="max-h-48 overflow-auto rounded border p-2">
-                {filteredFoods.length === 0 && <div className="text-sm text-muted-foreground">No foods found.</div>}
-                {filteredFoods.map((f) => (
+                {loading && (
+                  <>
+                    <Skeleton className="h-10 w-full rounded-md" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                  </>
+                )}
+                {!loading && filteredFoods.length === 0 && <div className="text-sm text-muted-foreground">No foods found.</div>}
+                {!loading && filteredFoods.map((f) => (
                   <div key={f.id} className={`p-2 rounded cursor-pointer ${selectedFood?.id === f.id ? "bg-muted/20" : ""}`} onClick={() => setSelectedFood(f)}>
                     <div className="flex items-center gap-3">
                       {f.image_url ? <img src={f.image_url} alt={f.f_name} className="w-12 h-12 rounded object-cover" /> : <div className="w-12 h-12 rounded bg-muted" />}
@@ -214,8 +229,15 @@ export default function CreateReviewModal({
 
               <Input value={restaurantQuery} onChange={(e) => setRestaurantQuery(e.target.value)} placeholder="Search restaurants..." />
               <div className="max-h-48 overflow-auto rounded border p-2">
-                {filteredRestaurants.length === 0 && <div className="text-sm text-muted-foreground">No restaurants found.</div>}
-                {filteredRestaurants.map((r) => (
+                {loading && (
+                  <>
+                    <Skeleton className="h-10 w-full rounded-md" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                  </>
+                )}
+                {!loading && filteredRestaurants.length === 0 && <div className="text-sm text-muted-foreground">No restaurants found.</div>}
+                {!loading && filteredRestaurants.map((r) => (
                   <div key={r.id} className={`p-2 rounded cursor-pointer ${selectedRestaurant?.id === r.id ? "bg-muted/20" : ""}`} onClick={() => setSelectedRestaurant(r)}>
                     <div className="font-medium">{r.name ?? r.resturantName}</div>
                     <div className="text-xs text-muted-foreground">{r.address ?? r.location ?? "Unknown location"} · {r.time ? format(new Date(r.time), "PPpp") : "No time"}</div>

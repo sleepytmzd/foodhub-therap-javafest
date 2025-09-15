@@ -95,7 +95,7 @@ services:
     depends_on:
       - keycloak
   image-service-sb:
-    image: sleepytmzd/image-service-sb:v3       # Replace with your dockerhub username
+    image: sleepytmzd/image-service-sb:v3      
     container_name: image-service-sb 
     ports:
       - "8085:8080"

@@ -5,18 +5,21 @@ import { useEffect, useMemo, useState } from "react";
 import { Home, Search, Star, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import AuthButton from "@/components/AuthButton";
 import { ModeToggle } from "@/components/ModeToggle";
 import { useAuth } from "@/providers/AuthProvider";
 import createApi from "@/lib/api";
-import { fetchRestaurantsFromVisits } from "@/lib/visitService";
+import { fetchRestaurantsFromVisits, getVisitByRestaurantId } from "@/lib/visitService";
 
 import FeedPost, { ReviewPost } from "@/components/explore/FeedPost";
-import { Restaurant } from "@/components/explore/RestaurantCard";
 import ExploreSidebar from "@/components/explore/ExploreSidebar";
 import CreateReviewModal from "@/components/explore/CreateReviewModal";
-import { getVisitByRestaurantId } from "@/lib/visitService";
+import UsersGrid from "@/components/explore/UsersGrid";
+import ReviewDetailsModal from "@/components/explore/ReviewDetailsModal";
 import { getFoodById, FoodResponse } from "@/lib/foodService";
+import { Restaurant } from "@/components/explore/RestaurantCard";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type ReviewResponse = {
   id: string;
@@ -27,11 +30,11 @@ type ReviewResponse = {
   userId: string | null;
   reactionCountLike: number;
   reactionCountDislike: number;
-  reactionUsersLike: string[] | null;
-  reactionUsersDislike: string[] | null;
-  comments: string[] | null;
-  createdAt: string | null;
-  updatedAt: string | null;
+  reactionUsersLike?: string[] | null;
+  reactionUsersDislike?: string[] | null;
+  comments?: string[] | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
 export default function ExplorePage() {
@@ -42,8 +45,8 @@ export default function ExplorePage() {
   const [query, setQuery] = useState("");
   const [posts, setPosts] = useState<ReviewPost[]>([]);
   const [rawReviews, setRawReviews] = useState<ReviewResponse[]>([]);
-  const [userNames, setUserNames] = useState<Record<string, string>>({});
-  const [view, setView] = useState<"reviews" | "restaurants">("reviews");
+  const [userNames, setUserNames] = useState<Record<string, { name: string; avatar?: string }>>({});
+  const [view, setView] = useState<"reviews" | "restaurants" | "users">("reviews");
   const [selectedReview, setSelectedReview] = useState<ReviewPost | null>(null);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
   const [restaurantDetails, setRestaurantDetails] = useState<{ name: string; location: string; foods: FoodResponse[] } | null>(null);
@@ -52,6 +55,8 @@ export default function ExplorePage() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [commentsByReview, setCommentsByReview] = useState<Record<string, { id: string; user: string; text: string; time: string }[]>>({});
+
+  const [loading, setLoading] = useState(true);
 
   const apiBase = process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL || "";
   const userServiceBase = process.env.NEXT_PUBLIC_USER_SERVICE_URL || apiBase;
@@ -71,17 +76,17 @@ export default function ExplorePage() {
     return api;
   };
 
-  const fetchUserNames = async (userIds: string[]): Promise<Record<string, string>> => {
+  const fetchUserNames = async (userIds: string[]): Promise<Record<string, { name: string; avatar?: string }>> => {
     if (!userServiceBase || userIds.length === 0) return {};
     const api = userApiClient();
-    const newMap: Record<string, string> = {};
+    const newMap: Record<string, { name: string; avatar?: string }> = {};
     await Promise.all(
       userIds.map(async (id) => {
         if (!id || userNames[id]) return;
         try {
           const resp = await api.get(`/api/user/${id}`);
           const data = resp.data;
-          if (data && data.name) newMap[id] = data.name;
+          if (data && data.name) newMap[id] = { name: data.name, avatar: data.userPhoto };
         } catch {
         }
       })
@@ -91,6 +96,7 @@ export default function ExplorePage() {
   };
 
   const fetchReviews = async () => {
+    setLoading(true);
     try {
       const api = apiClient();
       const resp = await api.get<ReviewResponse[]>("/api/review");
@@ -101,16 +107,17 @@ export default function ExplorePage() {
       const fetchedNames = await fetchUserNames(ids);
 
       const mapped: ReviewPost[] = data.map((r) => {
-        const username = userNames[r.userId ?? ""] ?? fetchedNames[r.userId ?? ""] ?? (r.userId ?? "User");
+        const username = userNames[r.userId ?? ""] ?? fetchedNames[r.userId ?? ""] ?? { name: r.userId ?? "User", avatar: undefined };
         const commentsArr = (r.comments ?? []).map((cid) => ({ id: cid, user: "", text: "", time: "" }));
         return {
           id: r.id,
-          user: { id: r.userId ?? "unknown", name: username, avatar: undefined },
+          user: { id: r.userId ?? "unknown", name: username.name, avatar: username.avatar },
           title: r.title ?? "(no title)",
           description: r.description ?? "",
           rating: undefined,
           createdAt: r.createdAt ? String(r.createdAt) : "",
           comments: commentsArr,
+          likes: r.reactionUsersLike ?? [],
         };
       });
       setPosts(mapped);
@@ -125,18 +132,23 @@ export default function ExplorePage() {
       }
     } catch (e) {
       console.error("fetchReviews failed", e);
+    } finally {
+      setLoading(false);
     }
   };
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
 
   const fetchRestaurants = async () => {
+    setLoading(true);
     try {
       const token = (keycloak as any)?.token;
       const data = await fetchRestaurantsFromVisits(process.env.NEXT_PUBLIC_VISIT_SERVICE_URL || "", token);
       setRestaurants(data);
     } catch (err) {
       console.error("fetchRestaurants failed", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -179,9 +191,15 @@ export default function ExplorePage() {
         await fetchReviews();
         return;
       }
+      console.log("found: ", found);
+      
       const usersLike = Array.from(found.reactionUsersLike ?? []);
       const already = usersLike.includes(userId);
       const updatedUsersLike = already ? usersLike.filter((u) => u !== userId) : [...usersLike, userId as string];
+      
+      console.log("userslike; ", usersLike);
+      console.log("already: ", already);
+      console.log("updateduserslike: ", updatedUsersLike);
 
       const reviewRequest = {
         id: found.id,
@@ -218,10 +236,10 @@ export default function ExplorePage() {
       const fetchedNames = await fetchUserNames(commenterIds);
 
       const comments = (commentsData || []).map((c: any) => {
-        const uname = userNames[c.userId] ?? fetchedNames[c.userId] ?? c.userId ?? "User";
+        const uname = userNames[c.userId] ?? fetchedNames[c.userId] ?? { name: c.userId ?? "User", avatar: undefined };
         return {
           id: c.id,
-          user: uname,
+          user: uname.name,
           text: c.content ?? "",
           time: c.createdAt ? String(c.createdAt) : "",
         };
@@ -230,6 +248,7 @@ export default function ExplorePage() {
       setCommentsByReview((s) => ({ ...s, [post.id]: comments }));
 
       setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, comments: comments.map((c: { id: any; user: any; text: any; time: any; }) => ({ id: c.id, user: c.user, text: c.text, time: c.time })) } : p)));
+      
     } catch (e) {
       console.error("fetch comments failed", e);
     }
@@ -326,7 +345,7 @@ export default function ExplorePage() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-3 rounded-lg border bg-card px-3 py-2">
               <Search className="w-4 h-4 text-muted-foreground" />
-              <input aria-label="Search" placeholder={view === "reviews" ? "Search reviews, users..." : "Search restaurants, tags..."} value={query} onChange={(e) => setQuery(e.target.value)} className="bg-transparent outline-none text-sm w-72" />
+              <input aria-label="Search" placeholder={view === "users" ? "Search users..." : view === "reviews" ? "Search reviews, users..." : "Search restaurants, tags..."} value={query} onChange={(e) => setQuery(e.target.value)} className="bg-transparent outline-none text-sm w-72" />
               {query && <button onClick={() => setQuery("")} className="text-xs text-muted-foreground px-2">Clear</button>}
             </div>
           </div>
@@ -353,8 +372,15 @@ export default function ExplorePage() {
           <section className="lg:col-span-6 space-y-6">
             {view === "reviews" && (
               <>
-                {filteredPosts.length === 0 && <div className="rounded border p-4 text-center text-muted-foreground">No posts found.</div>}
-                {filteredPosts
+                {loading && (
+                  <>
+                    <Skeleton className="h-24 w-full rounded-md" />
+                    <Skeleton className="h-24 w-full rounded-md" />
+                    <Skeleton className="h-24 w-full rounded-md" />
+                  </>
+                )}
+                {!loading && filteredPosts.length === 0 && <div className="rounded border p-4 text-center text-muted-foreground">No posts found.</div>}
+                {!loading && filteredPosts
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .map((post) => (
                   <FeedPost
@@ -370,14 +396,37 @@ export default function ExplorePage() {
               </>
             )}
 
+            
+            {/* Review details modal */}
+            {showReviewModal && selectedReview && (
+              <ReviewDetailsModal
+                open={showReviewModal}
+                onOpenChange={setShowReviewModal}
+                post={selectedReview}
+                comments={commentsByReview[selectedReview.id] ?? []}
+                isAuth={isAuth}
+                liked={!!liked[selectedReview.id]}
+                onToggleLike={toggleLike}
+                onPostComment={postComment}
+                onRequireAuth={() => alert("Please sign in to comment")}
+              />
+            )}
+
             {view === "restaurants" && (
               <>
-                {filteredRestaurants.length === 0 && <div className="rounded border p-4 text-center text-muted-foreground">No restaurants found.</div>}
+                {loading && (
+                  <>
+                    <Skeleton className="h-24 w-full rounded-md" />
+                    <Skeleton className="h-24 w-full rounded-md" />
+                    <Skeleton className="h-24 w-full rounded-md" />
+                  </>
+                )}
+                {!loading && filteredRestaurants.length === 0 && <div className="rounded border p-4 text-center text-muted-foreground">No restaurants found.</div>}
                 <div className="space-y-4">
-                  {filteredRestaurants.map((r) => (
+                  {!loading && filteredRestaurants.map((r) => (
                     <article key={r.id} className="rounded-md border bg-card p-0 overflow-hidden shadow-sm">
-                      <div className="flex">
-                        <div className="flex-1 p-4">
+                      <div className="flex flex-col sm:flex-row">
+                        <div className="flex flex-row p-4 flex-1 gap-2 justify-between">
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="font-semibold">{r.name}</div>
@@ -406,6 +455,20 @@ export default function ExplorePage() {
                     </article>
                   ))}
                 </div>
+              </>
+            )}
+
+            {view === "users" && (
+              <>
+              {loading && (
+                  <>
+                    <Skeleton className="h-24 w-full rounded-md" />
+                    <Skeleton className="h-24 w-full rounded-md" />
+                    <Skeleton className="h-24 w-full rounded-md" />
+                  </>
+                )}
+              
+              {!loading && <UsersGrid />}
               </>
             )}
           </section>
@@ -484,19 +547,5 @@ export default function ExplorePage() {
         onCreate={async (p) => await handleCreate(p)}
       />
     </main>
-  );
-}
-
-/* small comment input component - kept inline to avoid many files */
-function CommentInput({ onPost }: { onPost: (text: string) => Promise<void> }) {
-  const [text, setText] = useState("");
-  const [posting, setPosting] = useState(false);
-  return (
-    <div className="flex gap-2">
-      <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Write a comment..." className="flex-1 rounded-md border px-3 py-2 bg-input" />
-      <Button size="sm" onClick={async () => { if (!text.trim()) return; setPosting(true); await onPost(text.trim()); setText(""); setPosting(false); }}>
-        {posting ? "Posting…" : "Post"}
-      </Button>
-    </div>
   );
 }

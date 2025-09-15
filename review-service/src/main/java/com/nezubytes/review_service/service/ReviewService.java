@@ -103,25 +103,28 @@ public class ReviewService {
         if (reviewRequest.reactionCountDislike() != null) 
             review.setReactionCountDislike(reviewRequest.reactionCountDislike());
 
-        if (reviewRequest.reactionUsersLike() != null && !reviewRequest.reactionUsersLike().isEmpty()) {
+        if (reviewRequest.reactionUsersLike() != null) {
             if (review.getReactionUsersLike() == null) {
                 review.setReactionUsersLike(new ArrayList<>());
             }
-            review.getReactionUsersLike().addAll(reviewRequest.reactionUsersLike());
+//            review.getReactionUsersLike().addAll(reviewRequest.reactionUsersLike());
+            review.setReactionUsersLike(reviewRequest.reactionUsersLike());
         }
         
-        if (reviewRequest.reactionUsersDislike() != null && !reviewRequest.reactionUsersDislike().isEmpty()) {
+        if (reviewRequest.reactionUsersDislike() != null) {
             if (review.getReactionUsersDislike() == null) {
                 review.setReactionUsersDislike(new ArrayList<>());
             }
-            review.getReactionUsersDislike().addAll(reviewRequest.reactionUsersDislike());
+//            review.getReactionUsersDislike().addAll(reviewRequest.reactionUsersDislike());
+            review.setReactionUsersDislike(reviewRequest.reactionUsersDislike());
         }
 
-        if (reviewRequest.comments() != null && !reviewRequest.comments().isEmpty()) {
+        if (reviewRequest.comments() != null) {
             if (review.getComments() == null) {
                 review.setComments(new ArrayList<>());
             }
-            review.getComments().addAll(reviewRequest.comments());
+//            review.getComments().addAll(reviewRequest.comments());
+            review.setComments(reviewRequest.comments());
         }
 
         // Always update timestamp

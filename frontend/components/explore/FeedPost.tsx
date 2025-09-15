@@ -15,6 +15,7 @@ export type ReviewPost = {
   rating?: number;
   createdAt: string;
   comments: Comment[];
+  likes: string[];
 };
 
 export default function FeedPost({
@@ -46,7 +47,10 @@ export default function FeedPost({
         <div className="flex-1">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="font-medium">{post.user.name}</div>
+              <div className="font-medium">
+
+                {post.user.name}
+              </div>
               <div className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })} {post.rating ? `· ⭐ ${post.rating}` : null}
               </div>
@@ -69,7 +73,7 @@ export default function FeedPost({
               onClick={() => (isAuth ? onToggleLike(post.id) : onRequireAuth())}
               className="inline-flex items-center gap-2"
             >
-              <Heart className="w-4 h-4" /> {liked ? "Liked" : "Like"}
+              <Heart className="w-4 h-4" /> {post.likes.length} {liked ? "Liked" : "Like"}
             </Button>
 
             <Button

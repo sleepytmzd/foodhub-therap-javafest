@@ -5,6 +5,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import createApi from "@/lib/api";
 import FeedPost, { ReviewPost } from "@/components/explore/FeedPost";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "../ui/skeleton";
 
 type ReviewResponse = {
   id: string;
@@ -72,6 +73,7 @@ export default function UserReviewsFeed({
           rating: undefined,
           createdAt: r.createdAt ? String(r.createdAt) : "",
           comments: [], // filled below
+          likes: r.reactionUsersLike ?? [],
         }));
         setPosts(mapped);
 
@@ -225,13 +227,23 @@ export default function UserReviewsFeed({
       </div>
 
       <div className="space-y-6">
-        {loading && <div className="text-sm text-muted-foreground">Loading reviews…</div>}
+        {loading && (
+          // <div className="text-sm text-muted-foreground">Loading reviews…</div>
+          <>
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </>
+        )}
         {!loading && posts.length === 0 && <div className="text-sm text-muted-foreground">No reviews yet.</div>}
 
-        {posts.map((p) => (
+        {posts
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .map((p) => (
           <div key={p.id} className="rounded border p-3 space-y-2 bg-card shadow-sm hover:shadow-md transition-shadow duration-150 ease-in-out">
             <div className="flex justify-end mb-2 space-x-2">
-              {isAuth && <Button size="sm" variant="destructive" onClick={() => handleDeleteReview(p.id)}>Delete</Button>}
+              {isAuth && (keycloak as any)?.tokenParsed?.sub === p.user.id &&
+              (<Button size="sm" variant="destructive" onClick={() => handleDeleteReview(p.id)}>Delete</Button>)}
             </div>
 
             <FeedPost

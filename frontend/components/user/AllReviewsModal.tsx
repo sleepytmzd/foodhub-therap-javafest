@@ -81,6 +81,7 @@ export default function AllReviewsModal({
           rating: undefined,
           createdAt: r.createdAt ? String(r.createdAt) : "",
           comments: [], // will fill from commentsByReview
+          likes: r.reactionUsersLike ?? [],
         }));
         setPosts(mapped);
 

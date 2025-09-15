@@ -5,7 +5,9 @@ import createApi from "@/lib/api";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import UserReviewsFeed from "@/components/user/UserReviewsFeed";
+import UsersListModal from "@/components/user/UsersListModal";
 
 type User = {
   id: string;
@@ -43,13 +45,15 @@ export default function UserProfilePage() {
   const { initialized, keycloak } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const token = (keycloak as any)?.token ?? undefined;
+
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   // replaced dummy arrays with real data fetched from backend
   const [reviews, setReviews] = useState<ReviewMini[]>([]);
   // const [visits, setVisits] = useState<VisitMini[]>([]);
-
-  const [showAllReviews, setShowAllReviews] = useState(false);
-  // const [showAllVisits, setShowAllVisits] = useState(false);
 
   const fallbackCover =
     "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80";
@@ -154,7 +158,8 @@ export default function UserProfilePage() {
   if (loading) {
     return (
       <main className="max-w-5xl mx-auto px-4 py-12">
-        <div className="text-center text-muted-foreground">Loading profile…</div>
+        {/* <div className="text-center text-muted-foreground">Loading profile…</div> */}
+        <Skeleton className="h-screen" />
       </main>
     );
   }
@@ -219,18 +224,22 @@ export default function UserProfilePage() {
               </p>
 
               <div className="mt-4 flex items-center gap-6">
-                <div>
-                  <div className="text-lg font-semibold">{followersCount}</div>
-                  <div className="text-xs text-muted-foreground">Followers</div>
-                </div>
-                <div>
-                  <div className="text-lg font-semibold">{followingCount}</div>
-                  <div className="text-xs text-muted-foreground">Following</div>
-                </div>
+                <button onClick={() => setShowFollowersModal(true)} className="text-left">
+                  <div>
+                    <div className="text-lg font-semibold">{followersCount}</div>
+                    <div className="text-xs text-muted-foreground hover:underline">Followers</div>
+                  </div>
+                </button>
+                <button onClick={() => setShowFollowingModal(true)} className="text-left">
+                  <div>
+                    <div className="text-lg font-semibold">{followingCount}</div>
+                    <div className="text-xs text-muted-foreground hover:underline">Following</div>
+                  </div>
+                </button>
                 {/* <div>
-                  <div className="text-lg font-semibold">{visitsCount}</div>
-                  <div className="text-xs text-muted-foreground">Visits</div>
-                </div> */}
+                   <div className="text-lg font-semibold">{visitsCount}</div>
+                   <div className="text-xs text-muted-foreground">Visits</div>
+                 </div> */}
               </div>
             </div>
 
@@ -321,6 +330,23 @@ export default function UserProfilePage() {
 
       {/* reviews are shown inline in the left column via UserReviewsFeed */}
       {/* <AllVisitsModal open={showAllVisits} onOpenChange={setShowAllVisits} visits={visits} /> */}
+
+      {/* Followers / Following modals */}
+      <UsersListModal
+        open={showFollowersModal}
+        onOpenChange={setShowFollowersModal}
+        userIds={user?.followers ?? []}
+        title="Followers"
+        token={token}
+      />
+
+      <UsersListModal
+        open={showFollowingModal}
+        onOpenChange={setShowFollowingModal}
+        userIds={user?.following ?? []}
+        title="Following"
+        token={token}
+      />
     </main>
   );
 }

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Compass, MessageSquare, Cpu, BookOpen } from "lucide-react";
+import { Compass, MessageSquare, Cpu, BookOpen, UserRoundSearch } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -10,8 +10,8 @@ export default function ExploreSidebar({
   view,
   setView,
 }: {
-  view: "reviews" | "restaurants";
-  setView: (v: "reviews" | "restaurants") => void;
+  view: "reviews" | "restaurants" | "users";
+  setView: (v: "reviews" | "restaurants" | "users") => void;
 }) {
   return (
     <nav className="sticky top-24 space-y-3">
@@ -35,6 +35,14 @@ export default function ExploreSidebar({
                 className={`flex w-full items-center gap-3 px-2 py-2 rounded ${view === "reviews" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
                 <MessageSquare className="w-4 h-4" /> Recent reviews
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setView("users")}
+                className={`flex w-full items-center gap-3 px-2 py-2 rounded ${view === "users" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                <UserRoundSearch className="w-4 h-4" /> Find users
               </button>
             </li>
             <li>
