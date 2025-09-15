@@ -44,6 +44,17 @@ services:
       MONGO_INITDB_DATABASE: rest-service
     volumes:
       - ./data/mongodb5:/data/db
+  mongodb5:
+    image: mongo:7.0.5
+    container_name: mongodb-recommendations
+    ports:
+      - "27021:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: recommendation-service
+    volumes:
+      - ./data/mongodb6:/data/db
   postgres-kc:
     image: postgres:17.6
     container_name: postgres-kc 
@@ -246,6 +257,8 @@ services:
     ports:
       - "8020:8020"
     environment:
+      MONGODB5_URL: mongodb://root:password@mongodb-recommendations:27017/recommendation-service?authSource=admin
+      GOOGLE_PLACES_API_KEY: AIzaSyA5_RYijTsFz7b0x3XQP3MUo03xpM0V7gE
       OPENAI_API_KEY: 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
     depends_on:
       - qdrant
