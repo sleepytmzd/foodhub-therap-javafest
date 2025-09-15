@@ -64,3 +64,5 @@ test-output/
 # === Others ===
 node_modules/
 coverage/
+env/
+qdrant_storage/

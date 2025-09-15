@@ -1,0 +1,13 @@
+version: '4'
+services:
+  mongodb5:
+    image: mongo:7.0.5
+    container_name: mongodb-rest
+    ports:
+      - "27020:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: rest-service
+    volumes:
+      - ./data/mongodb5:/data/db

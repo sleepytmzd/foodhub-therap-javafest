@@ -1,0 +1,112 @@
+{
+  "restaurants": [
+    {
+      "location": "Banani, Dhaka",
+      "restaurantName": "Spice Garden",
+      "description": "Authentic Bangladeshi and Indian cuisine specializing in spicy curries and tandoori dishes.",
+      "foods": [
+        {
+          "category": "Main Course",
+          "foodName": "Chicken Curry",
+          "nutrition": {
+            "calories": 320,
+            "protein": "28g",
+            "carbs": "15g",
+            "fat": "18g"
+          }
+        },
+        {
+          "category": "Starter",
+          "foodName": "Vegetable Samosa",
+          "nutrition": {
+            "calories": 150,
+            "protein": "4g",
+            "carbs": "20g",
+            "fat": "7g"
+          }
+        }
+      ]
+    },
+    {
+      "location": "Dhanmondi, Dhaka",
+      "restaurantName": "Pizza Hub",
+      "description": "Italian-style pizzeria serving freshly baked pizzas, pasta, and sides.",
+      "foods": [
+        {
+          "category": "Pizza",
+          "foodName": "Margherita Pizza",
+          "nutrition": {
+            "calories": 270,
+            "protein": "12g",
+            "carbs": "30g",
+            "fat": "9g"
+          }
+        },
+        {
+          "category": "Pasta",
+          "foodName": "Spaghetti Alfredo",
+          "nutrition": {
+            "calories": 400,
+            "protein": "15g",
+            "carbs": "50g",
+            "fat": "15g"
+          }
+        }
+      ]
+    },
+    {
+      "location": "Gulshan, Dhaka",
+      "restaurantName": "Sushi World",
+      "description": "Japanese restaurant specializing in sushi, sashimi, and ramen.",
+      "foods": [
+        {
+          "category": "Sushi",
+          "foodName": "Salmon Nigiri",
+          "nutrition": {
+            "calories": 200,
+            "protein": "14g",
+            "carbs": "22g",
+            "fat": "5g"
+          }
+        },
+        {
+          "category": "Soup",
+          "foodName": "Miso Soup",
+          "nutrition": {
+            "calories": 90,
+            "protein": "6g",
+            "carbs": "8g",
+            "fat": "3g"
+          }
+        }
+      ]
+    },
+    {
+      "location": "Uttara, Dhaka",
+      "restaurantName": "Burger House",
+      "description": "American-style fast food with burgers, fries, and milkshakes.",
+      "foods": [
+        {
+          "category": "Burger",
+          "foodName": "Beef Cheeseburger",
+          "nutrition": {
+            "calories": 550,
+            "protein": "30g",
+            "carbs": "40g",
+            "fat": "28g"
+          }
+        },
+        {
+          "category": "Side",
+          "foodName": "French Fries",
+          "nutrition": {
+            "calories": 350,
+            "protein": "4g",
+            "carbs": "45g",
+            "fat": "18g"
+          }
+        }
+      ]
+    }
+  ]
+}

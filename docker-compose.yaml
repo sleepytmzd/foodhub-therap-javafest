@@ -33,6 +33,17 @@ services:
       MONGO_INITDB_DATABASE: review-service
     volumes:
       - ./data/mongodb3:/data/db
+  mongodb4:
+    image: mongo:7.0.5
+    container_name: mongodb-restaurant
+    ports:
+      - "27020:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: rest-service
+    volumes:
+      - ./data/mongodb5:/data/db
   postgres-kc:
     image: postgres:17.6
     container_name: postgres-kc 
@@ -101,12 +112,29 @@ services:
       - "8085:8080"
     environment:
       CLOUDINARY_URL: cloudinary://941186935662824:i5ioWntb-8NFNNUPvncgCijswFE@dihf0za5q
+  # food-service:
+  #   image: sleepytmzd/food-service:v3
+  #   container_name: food-service
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     IMAGE_SERVICE_URL: http://image-service-sb:8080
+  #     MONGODB1_URL: mongodb://root:password@mongodb1:27017/product-service?authSource=admin
+  #     FRONTEND_URL: http://localhost:7000
+  #     KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+  #   # extra_hosts:
+  #   #   - "localhost:host-gateway"
+  #   depends_on:
+  #     - mongodb1
+  #     - image-service-sb
   food-service:
     image: sleepytmzd/food-service:v4
     container_name: food-service
     ports:
       - "8081:8081"
     environment:
+      RECOM_SERVICE_URL: http://recomm-agent-service:8020
+      RESTAURANT_SERVICE_URL: http://restaurant-service:8089
       IMAGE_SERVICE_URL: http://image-service-sb:8080
       MONGODB1_URL: mongodb://root:password@mongodb1:27017/product-service?authSource=admin
       FRONTEND_URL: http://localhost:7000
@@ -116,6 +144,8 @@ services:
     depends_on:
       - mongodb1
       - image-service-sb
+      - recomm-agent-service
+  
   visit-service:
     image: sleepytmzd/visit-service:v4       # Replace with your dockerhub username
     container_name: visit-service
@@ -129,12 +159,26 @@ services:
       - "localhost:host-gateway"
     depends_on:
       - mongodb2
+  # review-service:
+  #   image: sleepytmzd/review-service:v4       # Replace with your dockerhub username
+  #   container_name: review-service
+  #   ports:
+  #     - "8083:8083"
+  #   environment:
+  #     MONGODB3_URL: mongodb://root:password@mongodb3:27017/review-service?authSource=admin
+  #     FRONTEND_URL: http://localhost:7000
+  #     KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+  #   extra_hosts:
+  #     - "localhost:host-gateway"
+  #   depends_on:
+  #     - mongodb3
   review-service:
-    image: sleepytmzd/review-service:v4       # Replace with your dockerhub username
+    image: review-service:tamim       # Replace with your dockerhub username
     container_name: review-service
     ports:
       - "8083:8083"
     environment:
+      NEGPOS_URL: http://negative-positive-agent-service:8021
       MONGODB3_URL: mongodb://root:password@mongodb3:27017/review-service?authSource=admin
       FRONTEND_URL: http://localhost:7000
       KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
@@ -159,7 +203,21 @@ services:
     depends_on:
       postgres-user:
         condition: service_healthy
-  
+  restaurant-service:
+    image: restaurant-service:tamim       # Replace with your dockerhub username
+    container_name: restaurant-service
+    ports:
+      - "8089:8089"
+    environment:
+      RECOM_SERVICE_URL: http://recomm-agent-service:8020
+      MONGODB4_URL: mongodb://root:password@mongodb4:27017/rest-service?authSource=admin
+      FRONTEND_URL: http://localhost:7000
+      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+    extra_hosts:
+      - "localhost:host-gateway"
+    depends_on:
+      - mongodb4
+      - recomm-agent-service
   frontend:
     image: sleepytmzd/frontend:v3
     container_name: frontend
@@ -176,22 +234,49 @@ services:
 
     depends_on:
       - keycloak
-
-  nutrition-predict-agent:
-    image: sleepytmzd/nutrition-predict-agent:v1
-    container_name: nutrition-predict-agent
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
     ports:
-      - "8000:8000"
-    environment:
-      OPENAI_API_KEY: your_openai_api_key_here
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC API
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
 
-  recipe-agent:
-    image: sleepytmzd/recipe-agent:v1
-    container_name: recipe-agent
+  recomm-agent-service:
+    image: recom-agent:tamim # Replace with actual image for your OpenAI service
+    container_name: recomm-agent-service
     ports:
-      - "8001:8001"
+      - "8020:8020"
     environment:
-      OPENAI_API_KEY: your_openai_api_key_here
+      OPENAI_API_KEY: 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
+    depends_on:
+      - qdrant
+
+  negative-positive-agent-service:
+    image: negative-positive-agent:tamim # Replace with actual image for your OpenAI service
+    container_name: negative-positive-agent-service
+    ports:
+      - "8021:8021"
+    environment:
+      GEMINI_API_KEY: AIzaSyBjt0UbNnk-OVkJuxp0zXY2826UhPAbDQc
+
+
+  # nutrition-predict-agent:
+  #   image: sleepytmzd/nutrition-predict-agent:v1
+  #   container_name: nutrition-predict-agent
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     OPENAI_API_KEY: your_openai_api_key_here
+
+  # recipe-agent:
+  #   image: sleepytmzd/recipe-agent:v1
+  #   container_name: recipe-agent
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     OPENAI_API_KEY: your_openai_api_key_here
 
   # frontend:
   #   build:

@@ -25,11 +25,13 @@ public class Review {
     private String resturantId;
     private String userId; 
 
-    private int reactionCountLike;
-    private int reactionCountDislike;
+    private Integer reactionCountLike;
+    private Integer reactionCountDislike;
 
     private List<String> reactionUsersLike;
     private List<String> reactionUsersDislike;
+
+    private String sentiment; 
 
     private List<String> comments; 
 
