@@ -1,11 +1,22 @@
 version: '4'
 
 services:
-  qdrant:
+  qdrant2:
     image: qdrant/qdrant:latest
-    container_name: qdrant
+    container_name: qdrant2
     ports:
       - "6333:6333"   # REST API
       - "6334:6334"   # gRPC API
     volumes:
       - ./qdrant_storage:/qdrant/storage
+  mongodb55:
+    image: mongo:7.0.5
+    container_name: mongodb-recomm
+    ports:
+      - "27021:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: recom-service
+    volumes:
+      - ./data/mongodb55:/data/db

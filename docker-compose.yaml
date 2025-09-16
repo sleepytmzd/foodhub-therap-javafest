@@ -44,6 +44,28 @@ services:
       MONGO_INITDB_DATABASE: rest-service
     volumes:
       - ./data/mongodb5:/data/db
+  mongodb5:
+    image: mongo:7.0.5
+    container_name: mongodb-recommendations
+    ports:
+      - "27021:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: recommendation-service
+    volumes:
+      - ./data/mongodb6:/data/db
+  mongodb6:
+    image: mongo:7.0.5
+    container_name: mongodb-hang
+    ports:
+      - "27022:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: hangout-service
+    volumes:
+      - ./data/mongodb7:/data/db
   postgres-kc:
     image: postgres:17.6
     container_name: postgres-kc 
@@ -249,6 +271,8 @@ services:
     ports:
       - "8020:8020"
     environment:
+      MONGODB5_URL: mongodb://root:password@mongodb-recommendations:27017/recommendation-service?authSource=admin
+      GOOGLE_PLACES_API_KEY: AIzaSyA5_RYijTsFz7b0x3XQP3MUo03xpM0V7gE
       OPENAI_API_KEY: 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
     depends_on:
       - qdrant
@@ -260,6 +284,21 @@ services:
       - "8021:8021"
     environment:
       GEMINI_API_KEY: AIzaSyBjt0UbNnk-OVkJuxp0zXY2826UhPAbDQc
+
+  hangout-service:
+    image: hangout-service:tamim       # Replace with your dockerhub username
+    container_name: hangout-service
+    ports:
+      - "8091:8091"
+    environment:
+      MONGODB6_URL: mongodb://root:password@mongodb6:27017/hangout-service?authSource=admin
+      FRONTEND_URL: http://localhost:7000
+      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+    extra_hosts:
+      - "localhost:host-gateway"
+    depends_on:
+      - mongodb6
+
 
 
   # nutrition-predict-agent:

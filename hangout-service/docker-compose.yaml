@@ -1,0 +1,13 @@
+version: '4'
+services:
+  mongodb11:
+    image: mongo:7.0.5
+    container_name: mongodb-hangout
+    ports:
+      - "27022:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: hangout-service
+    volumes:
+      - ./data/mongodb11:/data/db
