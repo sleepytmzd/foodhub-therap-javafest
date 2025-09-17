@@ -3,18 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
-import { createVisit } from "@/lib/visitService";
+import { createRestaurant } from "@/lib/restaurantService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FoodResponse, FoodRequest, createFood, updateFood, foodApiClient } from "@/lib/foodService";
-import { format } from "date-fns";
 
 /*
-Create "restaurant" using visit service (ignore userId/time fields per instruction).
-Detect user's current geolocation to prefill location.
-Allow adding existing foods (search) or creating new foods (navigates to /food/create, returns via localStorage).
-On final submit: create restaurant (visit) with foods[] ids, then update each food.resturant_id to the new restaurant id.
+Create restaurant using restaurant service.
+No geolocation; location is manual text input.
+Can add existing foods or create new ones.
 */
 
 export default function CreateRestaurantPage() {
@@ -25,7 +23,9 @@ export default function CreateRestaurantPage() {
 
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
-  const [description, setDescription] = useState(""); // used only client-side
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [weblink, setWeblink] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,20 +35,20 @@ export default function CreateRestaurantPage() {
   const [selectedFoods, setSelectedFoods] = useState<FoodResponse[]>([]);
 
   // detect browser location once on mount
-  useEffect(() => {
-    if (!("geolocation" in navigator)) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
-      },
-      (err) => {
-        // ignore failure — user can type location manually
-        console.warn("geolocation failed", err);
-      },
-      { enableHighAccuracy: false, timeout: 5000 }
-    );
-  }, []);
+  // useEffect(() => {
+  //   if (!("geolocation" in navigator)) return;
+  //   navigator.geolocation.getCurrentPosition(
+  //     (pos) => {
+  //       const { latitude, longitude } = pos.coords;
+  //       setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+  //     },
+  //     (err) => {
+  //       // ignore failure — user can type location manually
+  //       console.warn("geolocation failed", err);
+  //     },
+  //     { enableHighAccuracy: false, timeout: 5000 }
+  //   );
+  // }, []);
 
   // fetch foods for search
   useEffect(() => {
@@ -113,6 +113,8 @@ export default function CreateRestaurantPage() {
       if (parsed.name) setName(parsed.name);
       if (parsed.location) setLocation(parsed.location);
       if (parsed.description) setDescription(parsed.description);
+      if (parsed.category) setCategory(parsed.category);
+      if (parsed.weblink) setWeblink(parsed.weblink);
       if (parsed.foodQuery) setFoodQuery(parsed.foodQuery);
       localStorage.removeItem("pendingRestaurantDraft");
     } catch {}
@@ -124,18 +126,18 @@ export default function CreateRestaurantPage() {
     setSaving(true);
     setError(null);
     try {
-      const now = new Date().toISOString();
+      // const now = new Date().toISOString();
       // create restaurant as a visit (backend uses visit-service)
       const payload = {
         id: null,
-        userId: null,
+        name: name.trim(),
         location: location.trim() || null,
-        time: now,
-        resturantName: name.trim(),
-        // send food ids (may be empty)
-        foods: selectedFoods.length ? selectedFoods.map((f) => f.id) : null,
+        description: description.trim() || null,
+        category: category.trim() || null,
+        weblink: weblink.trim() || null,
+        foodIdList: selectedFoods.length ? selectedFoods.map((f) => f.id) : null,
       };
-      const created = await createVisit(payload, process.env.NEXT_PUBLIC_VISIT_SERVICE_URL, token);
+      const created = await createRestaurant(payload, process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL, token);
       // update each selected food to include restaurant id
       if (created?.id && selectedFoods.length > 0) {
         await Promise.all(
@@ -151,7 +153,7 @@ export default function CreateRestaurantPage() {
       }
       // store created restaurant for review flow and go back
       const createdForReview = { ...created, description };
-      localStorage.setItem("createdRestaurantForReview", JSON.stringify(createdForReview));
+      // localStorage.setItem("createdRestaurantForReview", JSON.stringify(createdForReview));
       router.back();
     } catch (e) {
       console.error("create restaurant failed", e);
@@ -170,10 +172,20 @@ export default function CreateRestaurantPage() {
           <label className="text-sm font-medium">Name</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </div>
+
+        <div>
+          <label className="text-sm font-medium">Category</label>
+          <Input value={category} onChange={(e) => setCategory(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Weblink (optional)</label>
+          <Input value={weblink} onChange={(e) => setWeblink(e.target.value)} />
+        </div>
+
         <div>
           <label className="text-sm font-medium">Location</label>
-          <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Latitude, Longitude or address" />
-          <div className="text-xs text-muted-foreground mt-1">Detected (or typed): {location || "not set"}</div>
+          <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, address or plus-code" />
         </div>
 
         <div>

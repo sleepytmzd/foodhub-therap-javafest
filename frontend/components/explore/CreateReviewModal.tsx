@@ -9,7 +9,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import createApi from "@/lib/api";
 import type { FoodResponse } from "@/lib/foodService";
-import { fetchRestaurantsFromVisits, createVisit as createVisitViaService } from "@/lib/visitService";
+// import { fetchRestaurantsFromVisits, createVisit as createVisitViaService } from "@/lib/visitService";
+import { fetchRestaurants as fetchRestaurantsApi } from "@/lib/restaurantService";
 import { format } from "date-fns";
 
 /*
@@ -69,7 +70,7 @@ export default function CreateReviewModal({
   const fetchRestaurants = async () => {
     setLoading(true);
     try {
-      const data = await fetchRestaurantsFromVisits(process.env.NEXT_PUBLIC_VISIT_SERVICE_URL || "", token);
+      const data = await fetchRestaurantsApi(process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL || "", token);
       setRestaurants(data);
     } catch (e) {
       console.error("fetchRestaurants failed", e);
@@ -83,22 +84,22 @@ export default function CreateReviewModal({
   useEffect(() => {
     if (!open) return;
     // restore created items if any
-    try {
-      const createdFood = localStorage.getItem("createdFoodForReview");
-      if (createdFood) {
-        const f = JSON.parse(createdFood) as FoodResponse;
-        setSelectedFood(f);
-        localStorage.removeItem("createdFoodForReview");
-        setTargetType("food");
-      }
-      const createdRestaurant = localStorage.getItem("createdRestaurantForReview");
-      if (createdRestaurant) {
-        const r = JSON.parse(createdRestaurant);
-        setSelectedRestaurant(r);
-        localStorage.removeItem("createdRestaurantForReview");
-        setTargetType("restaurant");
-      }
-    } catch {}
+    // try {
+    //   const createdFood = localStorage.getItem("createdFoodForReview");
+    //   if (createdFood) {
+    //     const f = JSON.parse(createdFood) as FoodResponse;
+    //     setSelectedFood(f);
+    //     localStorage.removeItem("createdFoodForReview");
+    //     setTargetType("food");
+    //   }
+    //   const createdRestaurant = localStorage.getItem("createdRestaurantForReview");
+    //   if (createdRestaurant) {
+    //     const r = JSON.parse(createdRestaurant);
+    //     setSelectedRestaurant(r);
+    //     localStorage.removeItem("createdRestaurantForReview");
+    //     setTargetType("restaurant");
+    //   }
+    // } catch {}
     // fetch fresh lists
     fetchFoods();
     fetchRestaurants();

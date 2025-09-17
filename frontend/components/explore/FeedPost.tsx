@@ -16,6 +16,7 @@ export type ReviewPost = {
   createdAt: string;
   comments: Comment[];
   likes: string[];
+  sentiment?: "positive" | "neutral" | "negative" | null;
 };
 
 export default function FeedPost({
@@ -33,6 +34,8 @@ export default function FeedPost({
   onOpenComments: (p: ReviewPost) => void;
   onRequireAuth: () => void;
 }) {
+  console.log(post);
+  
   return (
     <article className="rounded-md border bg-card p-4 shadow-sm">
       <header className="flex items-start gap-3">
@@ -56,9 +59,24 @@ export default function FeedPost({
               </div>
             </div>
 
-            <button className="p-1 rounded hover:bg-muted" aria-label="more">
+            {/* <button className="p-1 rounded hover:bg-muted" aria-label="more">
               <MoreHorizontal className="w-4 h-4" />
-            </button>
+            </button> */}
+            {post.sentiment ? (
+              <span
+                className={`px-2 py-1 text-xs font-medium rounded
+                  ${
+                    post.sentiment === "positive"
+                      ? "bg-primary text-primary-foreground"
+                      : post.sentiment === "negative"
+                      ? "bg-destructive text-destructive-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+              >
+                {post.sentiment.charAt(0).toUpperCase() + post.sentiment.slice(1)}
+              </span>
+            ) : null}
+
           </div>
 
           <div className="mt-2 text-foreground">

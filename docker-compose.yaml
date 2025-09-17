@@ -11,17 +11,17 @@ services:
       MONGO_INITDB_DATABASE: product-service
     volumes:
       - ./data/mongodb1:/data/db
-  mongodb2:
-    image: mongo:7.0.5
-    container_name: mongodb-visit
-    ports:
-      - "27018:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: visit-service
-    volumes:
-      - ./data/mongodb2:/data/db
+  # mongodb2:
+  #   image: mongo:7.0.5
+  #   container_name: mongodb-visit
+  #   ports:
+  #     - "27018:27017"
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: password
+  #     MONGO_INITDB_DATABASE: visit-service
+  #   volumes:
+  #     - ./data/mongodb2:/data/db
   mongodb3:
     image: mongo:7.0.5
     container_name: mongodb-review
@@ -43,7 +43,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
       MONGO_INITDB_DATABASE: rest-service
     volumes:
-      - ./data/mongodb5:/data/db
+      - ./data/mongodb4:/data/db
   mongodb5:
     image: mongo:7.0.5
     container_name: mongodb-recommendations
@@ -54,10 +54,10 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
       MONGO_INITDB_DATABASE: recommendation-service
     volumes:
-      - ./data/mongodb6:/data/db
+      - ./data/mongodb5:/data/db
   mongodb6:
     image: mongo:7.0.5
-    container_name: mongodb-hang
+    container_name: mongodb-hangout
     ports:
       - "27022:27017"
     environment:
@@ -65,7 +65,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
       MONGO_INITDB_DATABASE: hangout-service
     volumes:
-      - ./data/mongodb7:/data/db
+      - ./data/mongodb6:/data/db
   postgres-kc:
     image: postgres:17.6
     container_name: postgres-kc 
@@ -124,7 +124,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "8080:8080"  # expose to browser as localhost:9000
+      - "8080:8080"  # expose to browser as localhost:8080
     depends_on:
       - keycloak
   image-service-sb:
@@ -150,7 +150,7 @@ services:
   #     - mongodb1
   #     - image-service-sb
   food-service:
-    image: sleepytmzd/food-service:v4
+    image: sleepytmzd/food-service:v5
     container_name: food-service
     ports:
       - "8081:8081"
@@ -168,19 +168,19 @@ services:
       - image-service-sb
       - recomm-agent-service
   
-  visit-service:
-    image: sleepytmzd/visit-service:v4       # Replace with your dockerhub username
-    container_name: visit-service
-    ports:
-      - "8082:8082"
-    environment:
-      MONGODB2_URL: mongodb://root:password@mongodb2:27017/visit-service?authSource=admin
-      FRONTEND_URL: http://localhost:7000
-      KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
-    extra_hosts:
-      - "localhost:host-gateway"
-    depends_on:
-      - mongodb2
+  # visit-service:
+  #   image: sleepytmzd/visit-service:v4       # Replace with your dockerhub username
+  #   container_name: visit-service
+  #   ports:
+  #     - "8082:8082"
+  #   environment:
+  #     MONGODB2_URL: mongodb://root:password@mongodb2:27017/visit-service?authSource=admin
+  #     FRONTEND_URL: http://localhost:7000
+  #     KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+  #   extra_hosts:
+  #     - "localhost:host-gateway"
+  #   depends_on:
+  #     - mongodb2
   # review-service:
   #   image: sleepytmzd/review-service:v4       # Replace with your dockerhub username
   #   container_name: review-service
@@ -195,7 +195,7 @@ services:
   #   depends_on:
   #     - mongodb3
   review-service:
-    image: review-service:tamim       # Replace with your dockerhub username
+    image: sleepytmzd/review-service:v5       # Replace with your dockerhub username
     container_name: review-service
     ports:
       - "8083:8083"
@@ -226,7 +226,7 @@ services:
       postgres-user:
         condition: service_healthy
   restaurant-service:
-    image: restaurant-service:tamim       # Replace with your dockerhub username
+    image: sleepytmzd/restaurant-service:v1       # Replace with your dockerhub username
     container_name: restaurant-service
     ports:
       - "8089:8089"
@@ -240,8 +240,9 @@ services:
     depends_on:
       - mongodb4
       - recomm-agent-service
+
   frontend:
-    image: sleepytmzd/frontend:v3
+    image: sleepytmzd/frontend:v4
     container_name: frontend
     ports:
       - "7000:7000"
@@ -249,13 +250,17 @@ services:
       NEXT_PUBLIC_KEYCLOAK_URL: http://localhost:8080
       NEXT_PUBLIC_KEYCLOAK_REALM: foodhub
       NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: foodhub-kc
-      NEXT_PUBLIC_VISIT_SERVICE_URL: http://localhost:8082
+      # NEXT_PUBLIC_VISIT_SERVICE_URL: http://localhost:8082
       NEXT_PUBLIC_USER_SERVICE_URL: http://localhost:8084
       NEXT_PUBLIC_REVIEW_SERVICE_URL: http://localhost:8083
       NEXT_PUBLIC_FOOD_SERVICE_URL: http://localhost:8081
-
+      NEXT_PUBLIC_RECOMM_AGENT_URL: http://localhost:8020
+      NEXT_PUBLIC_RESTAURANT_SERVICE_URL: http://localhost:8089
+      NEXT_PUBLIC_NUTRITION_AGENT_URL: http://localhost:8022
+      NEXT_PUBLIC_HANGOUT_SERVICE_URL: http://localhost:8091
     depends_on:
       - keycloak
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant
@@ -266,27 +271,38 @@ services:
       - ./qdrant_storage:/qdrant/storage
 
   recomm-agent-service:
-    image: recom-agent:tamim # Replace with actual image for your OpenAI service
+    image: sleepytmzd/recomm-agent:v1       # Replace with actual image for your OpenAI service
     container_name: recomm-agent-service
     ports:
       - "8020:8020"
     environment:
-      MONGODB5_URL: mongodb://root:password@mongodb-recommendations:27017/recommendation-service?authSource=admin
+      QDRANT_URL: http://qdrant:6333
+      MONGODB5_URL: mongodb://root:password@mongodb5:27017/recommendation-service?authSource=admin
       GOOGLE_PLACES_API_KEY: AIzaSyA5_RYijTsFz7b0x3XQP3MUo03xpM0V7gE
       OPENAI_API_KEY: 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
+      FRONTEND_URL: http://localhost:7000    
     depends_on:
       - qdrant
 
   negative-positive-agent-service:
-    image: negative-positive-agent:tamim # Replace with actual image for your OpenAI service
+    image: sleepytmzd/negative-positive-agent:v1     # Replace with actual image for your OpenAI service
     container_name: negative-positive-agent-service
     ports:
       - "8021:8021"
     environment:
       GEMINI_API_KEY: AIzaSyBjt0UbNnk-OVkJuxp0zXY2826UhPAbDQc
 
+  nutrition-predict-agent:
+    image: sleepytmzd/nutrition-predict-agent:v1
+    container_name: nutrition-predict-agent
+    ports:
+      - "8022:8022"
+    environment:
+      OPENAI_API_KEY: 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
+      FRONTEND_URL: http://localhost:7000
+  
   hangout-service:
-    image: hangout-service:tamim       # Replace with your dockerhub username
+    image: sleepytmzd/hangout-service:v1       # Replace with your dockerhub username
     container_name: hangout-service
     ports:
       - "8091:8091"
@@ -309,13 +325,13 @@ services:
   #   environment:
   #     OPENAI_API_KEY: your_openai_api_key_here
 
-  # recipe-agent:
+# recipe-agent:
   #   image: sleepytmzd/recipe-agent:v1
   #   container_name: recipe-agent
   #   ports:
   #     - "8001:8001"
   #   environment:
-  #     OPENAI_API_KEY: your_openai_api_key_here
+  #     OPENAI_API_KEY: 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
 
   # frontend:
   #   build:

@@ -10,8 +10,8 @@ export default function ExploreSidebar({
   view,
   setView,
 }: {
-  view: "reviews" | "restaurants" | "users";
-  setView: (v: "reviews" | "restaurants" | "users") => void;
+  view: "reviews" | "restaurants" | "users" | "ai";
+  setView: (v: "reviews" | "restaurants" | "users" | "ai") => void;
 }) {
   return (
     <nav className="sticky top-24 space-y-3">
@@ -23,18 +23,18 @@ export default function ExploreSidebar({
           <ul className="space-y-2">
             <li>
               <button
-                onClick={() => setView("restaurants")}
-                className={`flex w-full items-center gap-3 px-2 py-2 rounded ${view === "restaurants" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-              >
-                <Compass className="w-4 h-4" /> Discover restaurants
-              </button>
-            </li>
-            <li>
-              <button
                 onClick={() => setView("reviews")}
                 className={`flex w-full items-center gap-3 px-2 py-2 rounded ${view === "reviews" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
                 <MessageSquare className="w-4 h-4" /> Recent reviews
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setView("restaurants")}
+                className={`flex w-full items-center gap-3 px-2 py-2 rounded ${view === "restaurants" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                <Compass className="w-4 h-4" /> Discover restaurants
               </button>
             </li>
             <li>
@@ -46,6 +46,14 @@ export default function ExploreSidebar({
               </button>
             </li>
             <li>
+              <button
+                onClick={() => setView("ai")}
+                className={`flex w-full items-center gap-3 px-2 py-2 rounded ${view === "ai" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                <Cpu className="w-4 h-4" /> AI Tools
+              </button>
+            </li>
+            {/* <li>
               <Link href="/ai-tools" className="flex items-center gap-3 px-2 py-2 rounded hover:bg-muted">
                 <Cpu className="w-4 h-4" /> AI Tools
               </Link>
@@ -54,7 +62,7 @@ export default function ExploreSidebar({
               <Link href="/recipes" className="flex items-center gap-3 px-2 py-2 rounded hover:bg-muted">
                 <BookOpen className="w-4 h-4" /> Recipe maker
               </Link>
-            </li>
+            </li> */}
           </ul>
         </CardContent>
       </Card>

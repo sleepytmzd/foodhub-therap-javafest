@@ -21,6 +21,8 @@ export default function CreateFoodPage() {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [price, setPrice] = useState<number>(0);
+  const [category, setCategory] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,15 +36,16 @@ export default function CreateFoodPage() {
         id: null,
         description: description.trim() || null,
         f_name: name.trim(),
-        category: null,
+        category: category.trim() || null,
         nutrition_table: null,
         resturant_id: null,
         image_url: null,
         user_id: userId ?? null,
+        price: price
       };
       const created = await createFood(payload, process.env.NEXT_PUBLIC_FOOD_SERVICE_URL, token, image ?? undefined);
       // store full created object so review modal can pick it up
-      localStorage.setItem("createdFoodForReview", JSON.stringify(created));
+      // localStorage.setItem("createdFoodForReview", JSON.stringify(created));
       // return to previous page (modal will read localStorage)
       router.back();
     } catch (e) {
@@ -65,6 +68,14 @@ export default function CreateFoodPage() {
         <div>
           <label className="text-sm font-medium">Description</label>
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Category</label>
+          <Input value={category} onChange={(e) => setCategory(e.target.value)} />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Price</label>
+          <Input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
         </div>
         <div>
           <label className="text-sm font-medium">Image (optional)</label>

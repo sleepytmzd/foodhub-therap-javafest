@@ -20,13 +20,13 @@ export function Navbar() {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center space-x-6 text-md font-medium">
-          <Link href="/explore" className="transition-colors hover:text-primary">
+          <Link href="/explore?view=restaurants" className="transition-colors hover:text-primary">
             Explore
           </Link>
-          <Link href="/reviews" className="transition-colors hover:text-primary">
+          <Link href="/explore?view=reviews" className="transition-colors hover:text-primary">
             Reviews
           </Link>
-          <Link href="/ai-tools" className="transition-colors hover:text-primary">
+          <Link href="/explore?view=ai" className="transition-colors hover:text-primary">
             AI Tools
           </Link>
           <Link href="/about" className="transition-colors hover:text-primary">

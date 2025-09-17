@@ -5,8 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import FeedPost, { ReviewPost } from "@/components/explore/FeedPost";
 import CommentInput from "@/components/common/CommentInput";
 import { Button } from "@/components/ui/button";
+import { format } from "date-fns/format";
+import { formatDistanceToNow } from "date-fns";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
-type Comment = { id: string; user: string; text: string; time: string };
+type Comment = { id: string; user: string; avatar:string; text: string; time: string };
 
 export default function ReviewDetailsModal({
   open,
@@ -55,11 +58,18 @@ export default function ReviewDetailsModal({
                 {comments.length === 0 && <li className="text-sm text-muted-foreground">No comments yet.</li>}
                 {comments.map((c) => (
                   <li key={c.id} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                    {/* <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
                       {c.user?.[0] ?? "U"}
-                    </div>
+                    </div> */}
+                    <Avatar className="size-6">
+                      {c.avatar ? (
+                        <AvatarImage src={c.avatar} alt={c.user} />
+                      ) : (
+                        <AvatarFallback>{c.user?.[0] ?? "U"}</AvatarFallback>
+                      )}
+                    </Avatar>
                     <div>
-                      <div className="text-sm"><strong>{c.user}</strong> <span className="text-xs text-muted-foreground">· {c.time}</span></div>
+                      <div className="text-sm"><strong>{c.user}</strong> <span className="text-xs text-muted-foreground">· {formatDistanceToNow(new Date(c.time), { addSuffix: true })}</span></div>
                       <div className="text-sm text-muted-foreground mt-1">{c.text}</div>
                     </div>
                   </li>

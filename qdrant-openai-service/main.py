@@ -14,10 +14,11 @@ import os
 from pymongo import MongoClient
 from typing import Dict, Any, Optional
 from datetime import datetime
+from fastapi.middleware.cors import CORSMiddleware
 
 
 
-qdrant = QdrantClient("http://qdrant:6333")
+qdrant = QdrantClient(os.getenv("QDRANT_URL"))     # "http://qdrant:6333"
 
 openai_client = OpenAI()
 app = FastAPI()
@@ -35,6 +36,21 @@ MONGO_CONFIG = {
     "password": "password",
     "database": "recommendation-service"
 }
+
+frontend_origins = os.getenv("FRONTEND_URL", "")
+origins = [
+    "http://localhost:7000", 
+    "http://127.0.0.1:7000",   
+    frontend_origins,
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       # or ["*"] to allow all
+    allow_credentials=True,
+    allow_methods=["*"],         # allow all HTTP methods
+    allow_headers=["*"],         # allow all headers
+)
 
 # conn_uri = f"mongodb://{MONGO_CONFIG['username']}:{MONGO_CONFIG['password']}@{MONGO_CONFIG['host']}:{MONGO_CONFIG['port']}/{MONGO_CONFIG['database']}?authSource=admin"
 # connection_string = f"{MONGODB5_URL}:mongodb://root:password@localhost:27021/recommendation-service?authSource=admin"

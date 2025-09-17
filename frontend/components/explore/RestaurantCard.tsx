@@ -16,13 +16,12 @@ export type VisitMini = {
 export type Restaurant = {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   location?: string;
-  rating: number;
-  address?: string;
-  cover?: string;
-  tags?: string[];
-  recentVisits?: VisitMini[];
+  category?: string;
+  weblink?: string;
+  foodIdList?: string[] | null;
+  rating?: number;
 };
 
 export default function RestaurantCard({
@@ -38,21 +37,21 @@ export default function RestaurantCard({
     <>
       <article className="rounded-md border bg-card p-0 overflow-hidden shadow-sm">
         <div className="flex">
-          <div
+          {/* <div
             className="w-36 h-24 bg-cover bg-center"
             style={{ backgroundImage: `url(${r.cover})` }}
-          />
+          /> */}
           <div className="flex-1 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="font-semibold">{r.name}</div>
-                {r.address && (
+                {r.location && (
                   <div className="text-xs text-muted-foreground mt-1">
-                    {r.address}
+                    {r.location}
                   </div>
                 )}
                 {/* show summary info from recentVisits when available */}
-                {r.recentVisits && r.recentVisits.length > 0 && (
+                {/* {r.recentVisits && r.recentVisits.length > 0 && (
                   <div className="text-xs text-muted-foreground mt-1">
                     {r.recentVisits.length} recent visit
                     {r.recentVisits.length !== 1 ? "s" : ""} ·{" "}
@@ -60,13 +59,13 @@ export default function RestaurantCard({
                       ? new Date(r.recentVisits[0].time).toLocaleString()
                       : ""}
                   </div>
-                )}
+                )} */}
               </div>
 
               <div className="text-right">
                 <div className="inline-flex items-center gap-1 bg-muted/10 px-2 py-1 rounded">
                   <Star className="w-4 h-4 text-amber-500" />{" "}
-                  <span className="font-medium">{r.rating.toFixed(1)}</span>
+                  {/* <span className="font-medium">{r.rating.toFixed(1)}</span> */}
                 </div>
               </div>
             </div>

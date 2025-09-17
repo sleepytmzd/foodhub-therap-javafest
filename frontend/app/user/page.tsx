@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import UserReviewsFeed from "@/components/user/UserReviewsFeed";
 import UsersListModal from "@/components/user/UsersListModal";
+import RecentFoodsSidebar from "@/components/user/RecentFoodsSidebar";
+import UserFoodsModal from "@/components/user/UserFoodsModal";
+import { formatDistanceToNow } from "date-fns";
 
 type User = {
   id: string;
@@ -50,6 +53,7 @@ export default function UserProfilePage() {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
+  const [showAllFoodsModal, setShowAllFoodsModal] = useState(false);
 
   // replaced dummy arrays with real data fetched from backend
   const [reviews, setReviews] = useState<ReviewMini[]>([]);
@@ -295,11 +299,17 @@ export default function UserProfilePage() {
                       <div className="text-xs text-muted-foreground mt-1">
                         {r.description.length > 90 ? r.description.slice(0, 90) + "…" : r.description}
                       </div>
-                      {r.createdAt && <div className="text-xs text-muted-foreground mt-1">{String(r.createdAt)}</div>}
+                      {r.createdAt && <div className="text-xs text-muted-foreground mt-1">{formatDistanceToNow(new Date(r.createdAt), { addSuffix: true })}</div>}
                     </li>
                   ))}
                 </ul>
               </div>
+
+              {/* Bottom: Recent foods */}
+              <RecentFoodsSidebar userId={user.id} token={token} onOpenAll={() => setShowAllFoodsModal(true)} />
+              {/* See all foods modal */}
+              <UserFoodsModal open={showAllFoodsModal} onOpenChange={setShowAllFoodsModal} userId={user.id} token={token} />
+
 
               {/* Bottom: Recent visits */}
               {/* <div className="rounded-md border p-4 bg-card-foreground/5">

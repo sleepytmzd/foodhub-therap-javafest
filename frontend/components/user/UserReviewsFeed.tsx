@@ -21,6 +21,7 @@ type ReviewResponse = {
   comments?: string[] | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  sentiment?: "positive" | "neutral" | "negative" | null;
 };
 
 export default function UserReviewsFeed({
@@ -74,6 +75,7 @@ export default function UserReviewsFeed({
           createdAt: r.createdAt ? String(r.createdAt) : "",
           comments: [], // filled below
           likes: r.reactionUsersLike ?? [],
+          sentiment: r.sentiment ?? null,
         }));
         setPosts(mapped);
 
@@ -152,6 +154,7 @@ export default function UserReviewsFeed({
         comments: raw.comments ?? [],
         createdAt: raw.createdAt ?? new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        sentiment: raw.sentiment ?? null,
       };
       await reviewApi().put(`/api/review/${id}`, payload);
       // refresh raw map for that review

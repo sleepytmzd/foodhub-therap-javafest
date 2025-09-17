@@ -108,7 +108,8 @@ public class FoodService {
                 food.getNutrition_table(),
                 food.getResturant_id(),
                 food.getImage_url(),
-                food.getUser_id()
+                food.getUser_id(),
+                food.getPrice()
         );
     }
 

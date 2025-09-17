@@ -9,6 +9,7 @@ export type FoodRequest = {
   resturant_id?: string | null;
   image_url?: string | null;
   user_id?: string | null;
+  price?: number | null;
 };
 
 export type FoodResponse = {
@@ -20,6 +21,7 @@ export type FoodResponse = {
   resturant_id?: string | null;
   image_url?: string | null;
   user_id?: string | null;
+  price?: number | null;
 };
 
 export function foodApiClient(baseUrl?: string, token?: string) {

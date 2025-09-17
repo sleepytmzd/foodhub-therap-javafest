@@ -9,6 +9,7 @@ import os
 import requests
 from typing import Optional, Union
 import json
+from fastapi.middleware.cors import CORSMiddleware
 
 '''
 API Endpoints:
@@ -23,6 +24,20 @@ key = image
 
 app = FastAPI(title="Food Nutrition Analyzer", version="1.0.0")
 
+frontend_origins = os.getenv("FRONTEND_URL", "")
+origins = [
+    "http://localhost:7000", 
+    "http://127.0.0.1:7000",   
+    frontend_origins,
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       # or ["*"] to allow all
+    allow_credentials=True,
+    allow_methods=["*"],         # allow all HTTP methods
+    allow_headers=["*"],         # allow all headers
+)
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
