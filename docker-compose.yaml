@@ -209,7 +209,7 @@ services:
     depends_on:
       - mongodb3
   user-service:
-    image: sleepytmzd/user-service:v4
+    image: sleepytmzd/user-service:v6
     container_name: user-service 
     ports:
       - "8084:8084"
@@ -242,7 +242,7 @@ services:
       - recomm-agent-service
 
   frontend:
-    image: sleepytmzd/frontend:v4
+    image: sleepytmzd/frontend:v5
     container_name: frontend
     ports:
       - "7000:7000"
@@ -271,7 +271,7 @@ services:
       - ./qdrant_storage:/qdrant/storage
 
   recomm-agent-service:
-    image: sleepytmzd/recomm-agent:v1       # Replace with actual image for your OpenAI service
+    image: sleepytmzd/recomm-agent:v2       # Replace with actual image for your OpenAI service
     container_name: recomm-agent-service
     ports:
       - "8020:8020"

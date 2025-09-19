@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import createApi from "@/lib/api";
 import api from "@/lib/api";
 import { useAuth } from "@/providers/AuthProvider";
+import { create } from "domain";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -19,8 +20,6 @@ export default function Home() {
   useEffect(() => {
     if (!keycloak?.authenticated) return;
 
-    console.log("inside useeffect");
-    
     const sub = keycloak.tokenParsed?.sub;
     const email = keycloak.tokenParsed?.email;
     const name = keycloak.tokenParsed?.name;
@@ -37,7 +36,7 @@ export default function Home() {
       } catch (error: any) {
         if (error.response?.status === 404) {
           console.log("User not found, creating...");
-          const user = { id: sub, name, firstName, lastName, email };
+          const user = { id: sub, name, firstName, lastName, email, coins: 10, createdAt: new Date().toISOString() };
           await api.post(`/api/user`, user);
         } else {
           console.error("Unexpected error checking user", error);

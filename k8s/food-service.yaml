@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: food-service
-        image: sleepytmzd/food-service:v4
+        image: sleepytmzd/food-service:v5
         ports:
         - containerPort: 8081
         env:
@@ -53,6 +53,16 @@ spec:
             configMapKeyRef:
               name: app-config 
               key: kc-issuer-url
+        - name: RECOM_SERVICE_URL
+          valueFrom: 
+            configMapKeyRef:
+              name: app-config 
+              key: recom-service-url
+        - name: RESTAURANT_SERVICE_URL
+          valueFrom: 
+            configMapKeyRef:
+              name: app-config 
+              key: restaurant-service-url
         
         startupProbe:
           httpGet:

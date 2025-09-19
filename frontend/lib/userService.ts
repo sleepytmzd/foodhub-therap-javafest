@@ -12,6 +12,7 @@ export type UserResponse = {
   userPhoto?: string | null;
   location?: string | null;
   totalCriticScore?: number;
+  coins?: number;
   following?: string[] | null;
   followers?: string[] | null;
   visits?: string[] | null;
@@ -30,6 +31,7 @@ export type UserSummary = {
   followers?: string[] | null;
   following?: string[] | null;
   totalCriticScore?: number | null;
+  coins?: number | null;
   visits?: string[] | null;
   // ...other fields...
 };

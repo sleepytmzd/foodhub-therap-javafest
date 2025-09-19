@@ -37,6 +37,10 @@ MONGO_CONFIG = {
     "database": "recommendation-service"
 }
 
+@app.get("/")
+def root():
+    return {"message": "Recommendation service is running ✅"}
+
 frontend_origins = os.getenv("FRONTEND_URL", "")
 origins = [
     "http://localhost:7000", 
@@ -266,7 +270,7 @@ def semantic_search(query_text: str, top_k: int = 10, type: str | None = None, m
     if restaurant:
         must.append(FieldCondition(key="restaurant", match=MatchValue(value=restaurant)))
     if category:
-        must.append(FieldCondition(key="type", match=MatchValue(value=type)))
+        must.append(FieldCondition(key="type", match=MatchValue(value=category)))
 
     flt = Filter(must=must) if must else None
 

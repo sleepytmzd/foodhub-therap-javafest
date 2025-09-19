@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import createApi from "@/lib/api";
 import Link from "next/link";
 import React from "react";
+import HangoutButton from "@/components/user/HangoutButton";
 
 export default function PublicUserProfilePage({ params }: { params: Promise<{ id: string }>  }) {
   const { id } = React.use(params);
@@ -137,7 +138,9 @@ export default function PublicUserProfilePage({ params }: { params: Promise<{ id
 
             <div className="flex-shrink-0">
               <div className="flex flex-col gap-2">
-                <Link href="/explore" className="inline-flex items-center justify-center rounded-md px-4 py-2 border bg-transparent text-sm">Explore</Link>
+                {/* <Link href="/explore" className="inline-flex items-center justify-center rounded-md px-4 py-2 border bg-transparent text-sm">Explore</Link> */}
+                {/* Hangout invite button (open modal to invite this user) */}
+                <HangoutButton targetUserId={user.id} targetUserName={fullName} token={token} />
 
                 {isAuth && myId !== userIdParam && (
                   isFollowing ? (

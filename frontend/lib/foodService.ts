@@ -65,6 +65,12 @@ export async function getFoodById(foodId: string, baseUrl?: string, token?: stri
   return resp.data as FoodResponse;
 }
 
+export async function fetchFoods(baseUrl?: string, token?: string) {
+  const api = foodApiClient(baseUrl, token);
+  const resp = await api.get<FoodResponse[]>("/api/food");
+  return resp.data as FoodResponse[];
+}
+
 // new: updateFood - updates food fields (used to set resturant_id after restaurant creation)
 export async function updateFood(foodId: string, payload: Partial<FoodRequest>, baseUrl?: string, token?: string) {
   const api = foodApiClient(baseUrl, token);

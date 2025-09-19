@@ -6,17 +6,9 @@ import { Button } from "@/components/ui/button";
 import createApi from "@/lib/api";
 import { getNutritionFromImageUrl } from "@/lib/nutritionService";
 import { updateFood, FoodRequest, FoodResponse } from "@/lib/foodService";
-
-// export type FoodItem = {
-//   id: string;
-//   f_name: string;
-//   description?: string;
-//   category?: string;
-//   nutrition_table?: string | null;
-//   image_url?: string | null;
-//   user_id?: string | null;
-//   price?: number | null;
-// };
+import { useAuth } from "@/providers/AuthProvider";
+import { useToast } from "@/components/ui/use-toast";
+import { updateUser } from "@/lib/userService";
 
 export default function UserFoodsModal({
   open,
@@ -29,6 +21,8 @@ export default function UserFoodsModal({
   userId: string;
   token?: string | undefined;
 }) {
+  const { keycloak } = useAuth();
+  const { toast } = useToast();
   const [foods, setFoods] = useState<FoodResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyIds, setBusyIds] = useState<Record<string, boolean>>({});
@@ -60,19 +54,90 @@ export default function UserFoodsModal({
 
   const handleGenerate = async (f: FoodResponse) => {
     if (!f.image_url) {
-      alert("No image available for this food. Nutrition generation requires an image.");
+      // keep simple UX
+      toast({ title: "No image", description: "Nutrition generation requires an image.", variant: "destructive" });
       return;
     }
     setBusyIds((s) => ({ ...s, [f.id]: true }));
+    const userServiceBase = process.env.NEXT_PUBLIC_USER_SERVICE_URL || "";
+    const tokenLocal = token ?? (keycloak as any)?.token ?? undefined;
+    const api = createApi(userServiceBase);
+    if (tokenLocal) (api as any).defaults.headers.common["Authorization"] = `Bearer ${tokenLocal}`;
+
+    // fetch latest user to check coins
+    let userData: any = null;
+    try {
+      const resp = await api.get(`/api/user/${userId}`);
+      userData = resp.data;
+      const coins = (userData?.coins ?? 0);
+      if (coins < 1) {
+        toast({ title: "Insufficient coins", description: "You need at least 1 coin to generate nutrition.", variant: "destructive" });
+        setBusyIds((s) => ({ ...s, [f.id]: false }));
+        return;
+      }
+      // deduct 1 coin up-front
+      const updatedPayload = {
+        id: userData.id,
+        name: userData.name ?? "",
+        firstName: userData.firstName ?? "",
+        lastName: userData.lastName ?? "",
+        email: userData.email ?? "",
+        coverPhoto: userData.coverPhoto ?? null,
+        userPhoto: userData.userPhoto ?? null,
+        location: userData.location ?? null,
+        totalCriticScore: userData.totalCriticScore ?? 0,
+        coins: coins - 1,
+        following: userData.following ?? [],
+        followers: userData.followers ?? [],
+        visits: userData.visits ?? [],
+        criticScoreHistory: userData.criticScoreHistory ?? [],
+        locationRecommendations: userData.locationRecommendations ?? [],
+      };
+      await updateUser(userId, updatedPayload, userServiceBase, tokenLocal);
+      toast({ title: "1 coin deducted", description: "Generating nutrition table…" });
+    } catch (e) {
+      console.error("coin check/deduct failed", e);
+      toast({ title: "Error", description: "Could not verify or deduct coins.", variant: "destructive" });
+      setBusyIds((s) => ({ ...s, [f.id]: false }));
+      return;
+    }
+
     try {
       const nutrition = await getNutritionFromImageUrl(f.image_url, process.env.NEXT_PUBLIC_NUTRITION_AGENT_URL);
       // store nutrition_table as JSON string (backend field is string)
       const updated = { ...f, nutrition_table: JSON.stringify(nutrition) };
       await updateFood(f.id, updated, process.env.NEXT_PUBLIC_FOOD_SERVICE_URL, token);
       setFoods((arr) => arr.map((it) => (it.id === f.id ? { ...it, nutrition_table: JSON.stringify(nutrition) } : it)));
+      toast({ title: "Nutrition generated", description: "Nutrition table saved." });
     } catch (e) {
       console.error("generate nutrition failed", e);
-      alert("Failed to generate nutrition.");
+      // attempt refund one coin
+      try {
+        if (userData) {
+          const refundPayload = {
+            id: userData.id,
+            name: userData.name ?? "",
+            firstName: userData.firstName ?? "",
+            lastName: userData.lastName ?? "",
+            email: userData.email ?? "",
+            coverPhoto: userData.coverPhoto ?? null,
+            userPhoto: userData.userPhoto ?? null,
+            location: userData.location ?? null,
+            totalCriticScore: userData.totalCriticScore ?? 0,
+            coins: (userData.coins ?? 0),
+            following: userData.following ?? [],
+            followers: userData.followers ?? [],
+            visits: userData.visits ?? [],
+            criticScoreHistory: userData.criticScoreHistory ?? [],
+            locationRecommendations: userData.locationRecommendations ?? [],
+          };
+          await updateUser(userId, refundPayload, process.env.NEXT_PUBLIC_USER_SERVICE_URL || "", token ?? (keycloak as any)?.token ?? undefined);
+          toast({ title: "Refunded", description: "Coin refunded due to failure." });
+        }
+      } catch (rerr) {
+        console.warn("refund failed", rerr);
+      }
+      toast({ title: "Failed", description: "Failed to generate nutrition.", variant: "destructive" });
     } finally {
       setBusyIds((s) => ({ ...s, [f.id]: false }));
     }

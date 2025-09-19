@@ -1,12 +1,12 @@
 apiVersion: cloud.google.com/v1
 kind: BackendConfig
 metadata:
-  name: review-service-backendconfig
+  name: restaurant-service-backendconfig
 spec:
   healthCheck:
     type: HTTP
     requestPath: /health
-    port: 8083
+    port: 8089
     checkIntervalSec: 10
     timeoutSec: 5
     healthyThreshold: 1
@@ -17,27 +17,27 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: review-service-deployment
+  name: restaurant-service-deployment
   labels:
-    app: review-service
+    app: restaurant-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: review-service
+      app: restaurant-service
   template:
     metadata:
       labels:
-        app: review-service
+        app: restaurant-service
     spec:
       containers:
-      - name: review-service
-        image: sleepytmzd/review-service:v4
+      - name: restaurant-service
+        image: sleepytmzd/restaurant-service:v1
         ports:
-        - containerPort: 8083
+        - containerPort: 8089
         env:
-          - name: MONGODB3_URL
-            value: mongodb://root:password@mongodb-review-service:27017/review-service?authSource=admin
+          - name: MONGODB4_URL
+            value: mongodb://root:password@mongodb-restaurant-service:27017/rest-service?authSource=admin
           - name: FRONTEND_URL
             valueFrom:
               configMapKeyRef:
@@ -48,16 +48,16 @@ spec:
               configMapKeyRef:
                 name: app-config 
                 key: kc-issuer-url
-          - name: NEGPOS_URL
+          - name: RECOM_SERVICE_URL
             valueFrom:
               configMapKeyRef:
                 name: app-config 
-                key: negpos-url
+                key: recom-service-url
 
         startupProbe:
           httpGet:
             path: /health
-            port: 8083
+            port: 8089
           initialDelaySeconds: 100
           periodSeconds: 10
           timeoutSeconds: 20
@@ -66,7 +66,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: 8083
+            port: 8089
           initialDelaySeconds: 100   # give your app some time to start
           periodSeconds: 10
           timeoutSeconds: 20
@@ -75,7 +75,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8083
+            port: 8089
           initialDelaySeconds: 100
           periodSeconds: 10
           timeoutSeconds: 20
@@ -94,16 +94,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: review-service-service
+  name: restaurant-service-service
   annotations:
-    cloud.google.com/backend-config: '{"default":"review-service-backendconfig"}'
+    cloud.google.com/backend-config: '{"default":"restaurant-service-backendconfig"}'
 spec:
   type: NodePort
   selector:
-    app: review-service
+    app: restaurant-service
   ports:
     - protocol: TCP
-      port: 8083
-      targetPort: 8083
+      port: 8089
+      targetPort: 8089
       # nodePort: 30100
 

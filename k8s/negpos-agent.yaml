@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: negpos-agent-deployment
+  labels:
+    app: negpos-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: negpos-agent
+  template:
+    metadata:
+      labels:
+        app: negpos-agent
+    spec:
+      containers:
+      - name: negpos-agent
+        image: sleepytmzd/negative-positive-agent:v1
+        ports:
+        - containerPort: 8021
+        env:
+        - name: GEMINI_API_KEY
+          valueFrom: 
+            configMapKeyRef:
+              name: app-config 
+              key: gemini-api-key
+        
+        resources:
+          requests:
+            cpu: "100m"       
+            memory: "256Mi"  
+          limits:
+            cpu: "200m"       
+            memory: "512Mi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: negpos-agent-service
+spec:
+  type: NodePort
+  selector:
+    app: negpos-agent
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8021
+      # nodePort: 30100
+

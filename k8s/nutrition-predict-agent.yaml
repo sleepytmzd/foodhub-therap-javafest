@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nutrition-predict-agent-deployment
+  labels:
+    app: nutrition-predict-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nutrition-predict-agent
+  template:
+    metadata:
+      labels:
+        app: nutrition-predict-agent
+    spec:
+      containers:
+      - name: nutrition-predict-agent
+        image: sleepytmzd/nutrition-predict-agent:v1
+        ports:
+        - containerPort: 8022
+        env:
+        - name: FRONTEND_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config 
+              key: frontend-url
+        - name: OPENAI_API_KEY
+          valueFrom: 
+            configMapKeyRef:
+              name: app-config 
+              key: openai-api-key
+        
+        resources:
+          requests:
+            cpu: "100m"       
+            memory: "256Mi"  
+          limits:
+            cpu: "200m"       
+            memory: "512Mi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nutrition-predict-agent-service
+spec:
+  type: NodePort
+  selector:
+    app: nutrition-predict-agent
+  ports:
+    - protocol: TCP
+      port: 8022
+      targetPort: 8022
+      # nodePort: 30100
+

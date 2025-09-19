@@ -99,7 +99,7 @@ export default function CreateRestaurantPage() {
 
   const openCreateFood = () => {
     // save draft so returning user sees current form
-    const draft = { name, location, description, foodQuery, selectedFoodIds: selectedFoods.map((f) => f.id) };
+    const draft = { name, location, description, category, weblink, foodQuery, selectedFoodIds: selectedFoods.map((f) => f.id) };
     localStorage.setItem("pendingRestaurantDraft", JSON.stringify(draft));
     router.push("/food/create");
   };
@@ -207,12 +207,16 @@ export default function CreateRestaurantPage() {
             {filteredFoods.length === 0 && <div className="text-sm text-muted-foreground">No foods</div>}
             {filteredFoods.map((f) => (
               <div key={f.id} className="flex items-center gap-3 p-2 rounded border">
+                {f.image_url ? (
+                  <img src={f.image_url} alt={f.f_name} className="w-12 h-12 rounded object-cover border" />
+                ) : (
+                  <div className="w-12 h-12 rounded bg-muted" />
+                )}
                 <div className="flex-1">
                   <div className="font-medium">{f.f_name}</div>
                   {f.description && <div className="text-xs text-muted-foreground">{f.description}</div>}
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="text-xs text-muted-foreground">{f.user_id ?? "user"}</div>
                   <Button size="sm" type="button" variant={selectedFoods.find((x) => x.id === f.id) ? "secondary" : "ghost"} onClick={() => toggleSelectFood(f)}>
                     {selectedFoods.find((x) => x.id === f.id) ? "Selected" : "Add"}
                   </Button>
@@ -231,7 +235,7 @@ export default function CreateRestaurantPage() {
                   <div className="flex-1">
                     <div className="font-medium">{f.f_name}</div>
                     {f.description && <div className="text-xs text-muted-foreground">{f.description}</div>}
-                    <div className="text-xs text-muted-foreground mt-1">id: {f.id}</div>
+                    {/* <div className="text-xs text-muted-foreground mt-1">id: {f.id}</div> */}
                   </div>
                   <Button type="button" size="sm" variant="ghost" onClick={() => setSelectedFoods((s) => s.filter((x) => x.id !== f.id))}>Remove</Button>
                 </div>

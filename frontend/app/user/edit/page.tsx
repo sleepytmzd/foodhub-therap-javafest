@@ -15,6 +15,7 @@ type User = {
   userPhoto?: string | null;
   location?: string | null;
   totalCriticScore?: number;
+  coins?: number;
   following?: string[];
   followers?: string[];
   visits?: string[];
@@ -41,8 +42,7 @@ export default function EditProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
-  // precise coords
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // no automatic geolocation; user will type location manually
 
   useEffect(() => {
     const load = async () => {
@@ -74,6 +74,7 @@ export default function EditProfilePage() {
             userPhoto: parsed.userPhoto ?? null,
             location: parsed.location ?? null,
             totalCriticScore: parsed.totalCriticScore ?? 0,
+            coins: parsed.coins ?? 0,
             following: parsed.following ?? [],
             followers: parsed.followers ?? [],
             visits: parsed.visits ?? [],
@@ -118,80 +119,6 @@ export default function EditProfilePage() {
       setCoverPreview(user.coverPhoto ?? null);
     }
   }, [user]);
-
-  // try to detect geolocation once (user must grant permission)
-  useEffect(() => {
-    // run only in browser and after auth provider initialized
-    if (typeof window === "undefined" || !initialized) return;
-
-    const setFromPosition = (position: GeolocationPosition) => {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      setCoords({ lat, lng });
-      setForm((s) => ({ ...s, location: `${lat.toFixed(5)}, ${lng.toFixed(5)}` }));
-    };
-
-    const handleGeoError = async (err: GeolocationPositionError | any) => {
-      console.debug("geolocation failed", err);
-      // fallback: try IP-based geolocation (less precise) so UI still shows something
-      try {
-        const resp = await fetch("https://ipapi.co/json/");
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data && data.latitude && data.longitude) {
-            const lat = Number(data.latitude);
-            const lng = Number(data.longitude);
-            setCoords({ lat, lng });
-            setForm((s) => ({ ...s, location: `${lat.toFixed(5)}, ${lng.toFixed(5)}` }));
-            return;
-          } else if (data && data.city && data.region && data.country_name) {
-            setForm((s) => ({ ...s, location: `${data.city}, ${data.region}, ${data.country_name}` }));
-            return;
-          }
-        }
-      } catch (e) {
-        // ignore fallback errors
-        console.debug("ip fallback failed", e);
-      }
-    };
-
-    // Prefer Permissions API if available so we can respond to 'denied' without prompting repeatedly
-    const tryGeolocation = async () => {
-      try {
-        // If Permissions API available, inspect status first
-        if ((navigator as any).permissions && typeof (navigator as any).permissions.query === "function") {
-          try {
-            const perm = await (navigator as any).permissions.query({ name: "geolocation" });
-            if (perm.state === "granted" || perm.state === "prompt") {
-              navigator.geolocation.getCurrentPosition(setFromPosition, handleGeoError, {
-                enableHighAccuracy: true,
-                timeout: 7000,
-              });
-            } else {
-              // denied -> use IP fallback
-              await handleGeoError({ code: 1, message: "permission denied" });
-            }
-            return;
-          } catch {
-            // fallthrough to attempting getCurrentPosition directly
-          }
-        }
-
-        // Permissions API not available — request position directly (will prompt the user)
-        navigator.geolocation.getCurrentPosition(setFromPosition, handleGeoError, {
-          enableHighAccuracy: true,
-          timeout: 7000,
-        });
-      } catch (err) {
-        // final fallback
-        await handleGeoError(err);
-      }
-    };
-
-    tryGeolocation();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialized]);
 
   const onChange = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((s) => ({ ...s, [k]: e.target.value }));
@@ -243,6 +170,7 @@ export default function EditProfilePage() {
         userPhoto: form.userPhoto || null,
         location: form.location || null,
         totalCriticScore: user.totalCriticScore ?? 0,
+        coins: user.coins ?? 0,
         following: user.following ?? [],
         followers: user.followers ?? [],
         visits: user.visits ?? [],
@@ -352,30 +280,7 @@ export default function EditProfilePage() {
                     Explore
                   </Link> */}
                 </div>
-                <div className="mt-3 text-xs text-muted-foreground">
-                  {coords ? `Detected: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : "Location not detected"}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!("geolocation" in navigator)) return;
-                    navigator.geolocation.getCurrentPosition(
-                      (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        setCoords({ lat, lng });
-                        setForm((s) => ({ ...s, location: `${lat.toFixed(5)}, ${lng.toFixed(5)}` }));
-                      },
-                      (err) => {
-                        console.debug("geolocation failed", err);
-                      },
-                      { enableHighAccuracy: true, timeout: 7000 }
-                    );
-                  }}
-                  className="mt-2 text-sm underline text-muted-foreground"
-                >
-                  Re-detect location
-                </button>
+                <div className="mt-3 text-xs text-muted-foreground">Enter your location in the field below.</div>
               </div>
 
               {/* <div className="w-full mt-4 space-y-3">

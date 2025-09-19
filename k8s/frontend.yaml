@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: sleepytmzd/frontend:v3
+        image: sleepytmzd/frontend:v4
         ports:
         - containerPort: 7000
         env:
@@ -35,9 +35,19 @@ spec:
             configMapKeyRef:
               name: app-config 
               key: keycloak-client-id
-        - name: NEXT_PUBLIC_VISIT_SERVICE_URL
+        - name: NEXT_PUBLIC_RESTAURANT_SERVICE_URL
           value: ""
         - name: NEXT_PUBLIC_USER_SERVICE_URL
+          value: ""
+        - name: NEXT_PUBLIC_REVIEW_SERVICE_URL
+          value: ""
+        - name: NEXT_PUBLIC_FOOD_SERVICE_URL
+          value: ""
+        - name: NEXT_PUBLIC_HANGOUT_SERVICE_URL
+          value: ""
+        - name: NEXT_PUBLIC_RECOMM_AGENT_URL
+          value: ""
+        - name: NEXT_PUBLIC_NUTRITION_AGENT_URL
           value: ""
               
         resources:

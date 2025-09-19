@@ -1,3 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-food-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 200Mi
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -39,6 +52,13 @@ spec:
           limits:
             cpu: "500m"    
             memory: "1Gi"
+        volumeMounts:
+          - name: mongodb-data
+            mountPath: /data/db
+      volumes:
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: mongodb-food-pvc
 
 ---
 

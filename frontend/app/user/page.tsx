@@ -11,6 +11,10 @@ import UsersListModal from "@/components/user/UsersListModal";
 import RecentFoodsSidebar from "@/components/user/RecentFoodsSidebar";
 import UserFoodsModal from "@/components/user/UserFoodsModal";
 import { formatDistanceToNow } from "date-fns";
+import HangoutsSidebar from "@/components/user/HangoutsSidebar";
+import HangoutsModal from "@/components/user/HangoutsModal";
+import { updateUser } from "@/lib/userService";
+import { Coins, CoinsIcon, Glasses, GlassesIcon } from "lucide-react";
 
 type User = {
   id: string;
@@ -22,6 +26,7 @@ type User = {
   userPhoto?: string | null;
   location?: string | null;
   totalCriticScore?: number;
+  coins?: number;
   following?: string[];
   followers?: string[];
   visits?: string[];
@@ -54,6 +59,7 @@ export default function UserProfilePage() {
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
   const [showAllFoodsModal, setShowAllFoodsModal] = useState(false);
+  const [showHangoutsModal, setShowHangoutsModal] = useState(false);
 
   // replaced dummy arrays with real data fetched from backend
   const [reviews, setReviews] = useState<ReviewMini[]>([]);
@@ -81,8 +87,10 @@ export default function UserProfilePage() {
         // fetch user profile (existing behavior)
         const userApi = createApi(process.env.NEXT_PUBLIC_USER_SERVICE_URL || "");
         if (keycloak?.token) (userApi as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+        let profileUser: User | null = null;
         try {
           const resp = await userApi.get(`/api/user/${sub}`);
+          profileUser = resp.data as User;
           setUser(resp.data);
         } catch {
           const parsed = keycloak?.tokenParsed as any;
@@ -97,6 +105,7 @@ export default function UserProfilePage() {
               userPhoto: parsed.userPhoto ?? null,
               location: parsed.location ?? null,
               totalCriticScore: parsed.totalCriticScore ?? 0,
+              coins: parsed.coins ?? 0,
               following: parsed.following ?? [],
               followers: parsed.followers ?? [],
               visits: parsed.visits ?? [],
@@ -125,6 +134,25 @@ export default function UserProfilePage() {
             // sort newest first by createdAt if available
             .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
           setReviews(mapped);
+
+          try {
+             const followersCount = (profileUser?.followers?.length) ?? 0;
+             const newScore = mapped.length + followersCount;
+             // update only if different
+             if (profileUser && (profileUser.totalCriticScore ?? 0) !== newScore) {
+               // build updated payload based on the full profile so backend receives expected shape
+               const updatedPayload = {
+                 ...profileUser,
+                 totalCriticScore: newScore,
+               };
+               // call updateUser helper which sends multipart/form-data expected by backend
+               await updateUser(profileUser.id, updatedPayload, process.env.NEXT_PUBLIC_USER_SERVICE_URL, token);
+               // reflect change on UI
+               setUser((u) => u ? { ...u, totalCriticScore: newScore } : u);
+             }
+           } catch (e) {
+             console.warn("failed to update critic score", e);
+           }
         } catch (err) {
           console.error("failed to fetch reviews", err);
           setReviews([]);
@@ -191,6 +219,7 @@ export default function UserProfilePage() {
   const followingCount = user.following?.length ?? 0;
   // const visitsCount = visits.length;
   const score = user.totalCriticScore ?? 0;
+  const coins = user.coins ?? 0;
 
   // only show the latest 3 on the sidebar
   const latestReviews = reviews.slice(0, 3);
@@ -224,7 +253,9 @@ export default function UserProfilePage() {
               </div>
 
               <p className="mt-2 text-sm text-muted-foreground">
-                Critic score: <span className="font-medium">{score.toFixed(1)}</span>
+                <GlassesIcon className="inline-block h-4 w-4" /> Critic score: <span className="font-medium">{score.toFixed(1)}</span>
+                {" · "}
+                <CoinsIcon className="inline-block h-4 w-4" /> Coins: <span className="font-medium">{coins}</span>
               </p>
 
               <div className="mt-4 flex items-center gap-6">
@@ -279,7 +310,7 @@ export default function UserProfilePage() {
                   </p>
                 </div>
               </div> */}
-              <UserReviewsFeed profileUserId={user.id} profileUserName={fullName} />
+              <UserReviewsFeed profileUserId={user.id} profileUserName={fullName} profileUserPhoto={user.userPhoto ?? null} />
             </div>
 
             {/* Right: sidebar with two horizontal subsections (stacked vertically) */}
@@ -310,6 +341,9 @@ export default function UserProfilePage() {
               {/* See all foods modal */}
               <UserFoodsModal open={showAllFoodsModal} onOpenChange={setShowAllFoodsModal} userId={user.id} token={token} />
 
+              {/* Hangouts */}
+              <HangoutsSidebar profileUserId={user.id} token={token} onOpenAll={() => setShowHangoutsModal(true)} />
+              <HangoutsModal open={showHangoutsModal} onOpenChange={setShowHangoutsModal} profileUserId={user.id} token={token} />
 
               {/* Bottom: Recent visits */}
               {/* <div className="rounded-md border p-4 bg-card-foreground/5">

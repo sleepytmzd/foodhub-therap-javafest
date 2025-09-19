@@ -25,13 +25,13 @@ spec:
             name: food-service-service
             port:
               number: 8081
-      - path: /api/visit
+      - path: /api/restaurant
         pathType: Prefix
         backend:
           service:
-            name: visit-service-service
+            name: restaurant-service-service
             port:
-              number: 8082
+              number: 8089
       - path: /api/review
         pathType: Prefix
         backend:
@@ -46,3 +46,69 @@ spec:
             name: user-service-service
             port:
               number: 8084
+      
+      # - path: /analyze-sentiment
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: negpos-agent-service
+      #       port:
+      #         number: 80
+
+      - path: /analyze-nutrition-file
+        pathType: Prefix
+        backend:
+          service:
+            name: nutrition-predict-agent-service
+            port:
+              number: 8022
+      - path: /analyze-nutrition-url
+        pathType: Prefix
+        backend:
+          service:
+            name: nutrition-predict-agent-service
+            port:
+              number: 8022
+      - path: /analyze-nutrition
+        pathType: Prefix
+        backend:
+          service:
+            name: nutrition-predict-agent-service
+            port:
+              number: 8022
+      - path: /example
+        pathType: Prefix
+        backend:
+          service:
+            name: nutrition-predict-agent-service
+            port:
+              number: 8022
+
+      - path: /recommendations
+        pathType: Prefix
+        backend:
+          service:
+            name: recom-agent-service
+            port:
+              number: 80
+      - path: /add-point-food
+        pathType: Prefix
+        backend:
+          service:
+            name: recom-agent-service
+            port:
+              number: 80
+      - path: /add-point-restaurant
+        pathType: Prefix
+        backend:
+          service:
+            name: recom-agent-service
+            port:
+              number: 80
+      - path: /semantic-search
+        pathType: Prefix
+        backend:
+          service:
+            name: recom-agent-service
+            port:
+              number: 80

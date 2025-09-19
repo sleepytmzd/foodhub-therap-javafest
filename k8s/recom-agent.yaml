@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recom-agent-deployment
+  labels:
+    app: recom-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recom-agent
+  template:
+    metadata:
+      labels:
+        app: recom-agent
+    spec:
+      containers:
+      - name: recom-agent
+        image: sleepytmzd/recomm-agent:v2
+        ports:
+        - containerPort: 8020
+        env:
+        - name: QDRANT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config 
+              key: qdrant-url
+        - name: MONGODB5_URL
+          value: mongodb://root:password@mongodb-recom-service:27017/recommendation-service?authSource=admin
+        - name: FRONTEND_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config 
+              key: frontend-url
+        - name: GOOGLE_PLACES_API_KEY
+          valueFrom: 
+            configMapKeyRef:
+              name: app-config 
+              key: google-places-api-key
+        - name: OPENAI_API_KEY
+          valueFrom: 
+            configMapKeyRef:
+              name: app-config 
+              key: openai-api-key
+        
+        resources:
+          requests:
+            cpu: "100m"       
+            memory: "256Mi"  
+          limits:
+            cpu: "200m"       
+            memory: "512Mi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: recom-agent-service
+spec:
+  type: NodePort
+  selector:
+    app: recom-agent
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8020
+      # nodePort: 30100
+

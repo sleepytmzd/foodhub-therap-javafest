@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +23,10 @@ public class UserService {
 
     public UserResponse createUser(UserRequest userRequest) {
         Users user = mapToEntity(userRequest);
+        LocalDateTime now = LocalDateTime.now();
+        user.setCreatedAt(now);
+        user.setLastRechargedAt(now); // first recharge same as creation
+        user.setCoins(10);
         userRepository.save(user);
         return mapToResponse(user);
     }
@@ -37,8 +43,20 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "User not found with id: " + id
                 ));
+
+        LocalDateTime lastRecharge = user.getLastRechargedAt() != null
+                ? user.getLastRechargedAt()
+                : user.getCreatedAt();
+
+        if (lastRecharge != null && ChronoUnit.MONTHS.between(lastRecharge, LocalDateTime.now()) >= 1) {
+            user.setCoins(10); // reset coins
+            user.setLastRechargedAt(LocalDateTime.now());
+            userRepository.save(user);
+        }
+
         return mapToResponse(user);
     }
+
 
     public UserResponse updateUser(String id, UserRequest userRequest) {
         Users existingUser = userRepository.findById(id)
@@ -52,6 +70,7 @@ public class UserService {
         existingUser.setCoverPhoto(userRequest.coverPhoto());
         existingUser.setLocation(userRequest.location());
         existingUser.setTotalCriticScore(userRequest.totalCriticScore());
+        existingUser.setCoins(userRequest.coins());
         existingUser.setFollowers(userRequest.followers());
         existingUser.setFollowing(userRequest.following());
         existingUser.setVisits(userRequest.visits());
@@ -82,6 +101,7 @@ public class UserService {
                 .userPhoto(request.userPhoto())
                 .coverPhoto(request.coverPhoto())
                 .location(request.location())
+                .coins(request.coins())
                 .totalCriticScore(request.totalCriticScore())
                 .followers(request.followers())
                 .following(request.following())
@@ -102,6 +122,9 @@ public class UserService {
                 user.getUserPhoto(),
                 user.getLocation(),
                 user.getTotalCriticScore(),
+                user.getCoins(),
+                user.getCreatedAt(),
+                user.getLastRechargedAt(),
                 user.getFollowing(),
                 user.getFollowers(),
                 user.getVisits(),

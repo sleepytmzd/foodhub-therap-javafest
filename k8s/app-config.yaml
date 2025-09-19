@@ -13,4 +13,10 @@ data:
   keycloak-realm: foodhub
   keycloak-client-id: foodhub-kc
   kc-hostname: foodhubauth.duckdns.org
-  
+  recom-service-url: recom-agent-service
+  restaurant-service-url: restaurant-service-service
+  negpos-url: negpos-agent-service
+  qdrant-url: qdrant
+  google-places-api-key: AIzaSyA5_RYijTsFz7b0x3XQP3MUo03xpM0V7gE
+  openai-api-key: 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
+  gemini-api-key: AIzaSyBjt0UbNnk-OVkJuxp0zXY2826UhPAbDQc

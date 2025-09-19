@@ -2,27 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Home, Search, Star, X, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import AuthButton from "@/components/AuthButton";
-import { ModeToggle } from "@/components/ModeToggle";
 import { useAuth } from "@/providers/AuthProvider";
 import createApi from "@/lib/api";
-// import { fetchRestaurantsFromVisits, getVisitByRestaurantId } from "@/lib/visitService";
 import { fetchRestaurants as fetchRestaurantsApi, getRestaurantById, RestaurantDto } from "@/lib/restaurantService";
 
 import FeedPost, { ReviewPost } from "@/components/explore/FeedPost";
-import ExploreSidebar from "@/components/explore/ExploreSidebar";
-import CreateReviewModal from "@/components/explore/CreateReviewModal";
-import UsersGrid from "@/components/explore/UsersGrid";
-import ReviewDetailsModal from "@/components/explore/ReviewDetailsModal";
-import { getFoodById, FoodResponse } from "@/lib/foodService";
-import { Restaurant } from "@/components/explore/RestaurantCard";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AITools from "@/components/explore/AITools";
 import { useSearchParams } from "next/navigation";
+import { FoodResponse, getFoodById, fetchFoods as fetchFoodsApi } from "@/lib/foodService";
+import CreateReviewModal from "@/components/explore/CreateReviewModal";
+import ReviewDetailsModal from "@/components/explore/ReviewDetailsModal";
+import UsersGrid from "@/components/explore/UsersGrid";
+import ReviewsFilters, { ReviewsFilterState } from "@/components/explore/ReviewsFilters";
+import RestaurantsFilters, { RestaurantsFilterState } from "@/components/explore/RestaurantsFilters";
+import { format } from "date-fns";
 
 type ReviewResponse = {
   id: string;
@@ -46,24 +43,66 @@ export default function ExplorePage() {
   const isAuth = !!(initialized && keycloak && (keycloak as any).authenticated);
   const userId = (keycloak as any)?.tokenParsed?.sub ?? null;
   const searchParams = useSearchParams();
+  // bulletin/sidebar state
+  const [topRestaurants, setTopRestaurants] = useState<{ id: string; name?: string; location?: string; category?: string; reviewCount: number }[]>([]);
+  const [topUsers, setTopUsers] = useState<{ id: string; name?: string; avatar?: string; totalCriticScore?: number }[]>([]);
 
-  const [query, setQuery] = useState("");
+  // derive view from query param set by Navbar
+  const initialView = (searchParams.get("view") as "reviews" | "restaurants" | "users" | "ai") || "reviews";
+  const [view, setView] = useState<typeof initialView>(initialView);
+
+  useEffect(() => {
+    const sp = (searchParams.get("view") as "reviews" | "restaurants" | "users" | "ai") || "reviews";
+    setView(sp);
+  }, [searchParams]);
+
+  // reviews/restaurants state
   const [posts, setPosts] = useState<ReviewPost[]>([]);
   const [rawReviews, setRawReviews] = useState<ReviewResponse[]>([]);
   const [userNames, setUserNames] = useState<Record<string, { name: string; avatar?: string }>>({});
-  const initialView = (searchParams.get("view") as "reviews" | "restaurants" | "users" | "ai") || "reviews";
-  const [view, setView] = useState<typeof initialView>(initialView);
   const [selectedReview, setSelectedReview] = useState<ReviewPost | null>(null);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
-  const [restaurantDetails, setRestaurantDetails] = useState<{ name: string; location: string; category: string; description: string; weblink?: string; foods: FoodResponse[] } | null>(null);
+  const [restaurantDetails, setRestaurantDetails] = useState<{
+    name: string;
+    location: string;
+    category: string;
+    description: string;
+    weblink?: string;
+    foods: FoodResponse[];
+  } | null>(null);
   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [commentsByReview, setCommentsByReview] = useState<Record<string, { id: string; user: string; avatar:string; text: string; time: string }[]>>({});
+  const [commentsByReview, setCommentsByReview] = useState<Record<string, { id: string; user: string; avatar: string; text: string; time: string }[]>>({});
   const [restaurants, setRestaurants] = useState<RestaurantDto[]>([]);
+  // foods for review filters
+  const [foods, setFoods] = useState<FoodResponse[]>([]);
+  const [foodQueryFilter, setFoodQueryFilter] = useState("");
+  const [filteredFoodsForFilter, setFilteredFoodsForFilter] = useState<FoodResponse[]>([]);
+  const [selectedFoodFilter, setSelectedFoodFilter] = useState<FoodResponse | null>(null);
+  // restaurant filter (search + select)
+  const [restaurantQueryFilter, setRestaurantQueryFilter] = useState("");
+  const [filteredRestaurantsForFilter, setFilteredRestaurantsForFilter] = useState<RestaurantDto[]>([]);
+  const [selectedRestaurantFilter, setSelectedRestaurantFilter] = useState<RestaurantDto | null>(null);
 
   const [loading, setLoading] = useState(true);
+
+  // new filter states
+  const [reviewsFilters, setReviewsFilters] = useState<ReviewsFilterState>({
+    title: "",
+    description: "",
+    username: "",
+    sentiment: "",
+  });
+  const [reviewsSort, setReviewsSort] = useState<"newest" | "likes" | "comments">("newest");
+
+  const [restaurantsFilters, setRestaurantsFilters] = useState<RestaurantsFilterState>({
+    name: "",
+    description: "",
+    category: "",
+    location: "",
+  });
 
   const apiBase = process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL || "";
   const userServiceBase = process.env.NEXT_PUBLIC_USER_SERVICE_URL || apiBase;
@@ -95,6 +134,7 @@ export default function ExplorePage() {
           const data = resp.data;
           if (data && data.name) newMap[id] = { name: data.name, avatar: data.userPhoto };
         } catch {
+          // ignore
         }
       })
     );
@@ -126,8 +166,27 @@ export default function ExplorePage() {
           comments: commentsArr,
           likes: r.reactionUsersLike ?? [],
           sentiment: r.sentiment ?? null,
-        };
+          food: undefined,
+          restaurant: undefined,
+        } as ReviewPost;
       });
+
+      await Promise.all(
+        data.map(async (r, idx) => {
+          try {
+            if (r.foodId) {
+              const f = await getFoodById(r.foodId, process.env.NEXT_PUBLIC_FOOD_SERVICE_URL, (keycloak as any)?.token);
+              mapped[idx].food = f;
+            } else if (r.resturantId) {
+              const rest = await getRestaurantById(r.resturantId, process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL, (keycloak as any)?.token);
+              mapped[idx].restaurant = { id: rest.id, name: rest.name, location: rest.location ?? undefined, category: rest.category ?? undefined, weblink: rest.weblink ?? undefined };
+            }
+          } catch {
+            // ignore
+          }
+        })
+      );
+
       setPosts(mapped);
 
       if (userId) {
@@ -145,16 +204,30 @@ export default function ExplorePage() {
     }
   };
 
-  
-
   const fetchRestaurants = async () => {
     setLoading(true);
     try {
       const token = (keycloak as any)?.token;
       const data = await fetchRestaurantsApi(process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL || "", token);
       setRestaurants(data);
+      // also set filtered list for filter UI
+      setFilteredRestaurantsForFilter(data || []);
     } catch (err) {
       console.error("fetchRestaurants failed", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFoods = async () => {
+    setLoading(true);
+    try {
+      const token = (keycloak as any)?.token;
+      const data = await fetchFoodsApi(process.env.NEXT_PUBLIC_FOOD_SERVICE_URL || "", token);
+      setFoods(data || []);
+      setFilteredFoodsForFilter(data || []);
+    } catch (err) {
+      console.error("fetchFoods failed", err);
     } finally {
       setLoading(false);
     }
@@ -164,33 +237,173 @@ export default function ExplorePage() {
     if (initialized) {
       fetchReviews();
       fetchRestaurants();
+      fetchFoods();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized]);
 
-  const filteredPosts = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return posts;
-    return posts.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.user.name.toLowerCase().includes(q) ||
-        (p.sentiment ? p.sentiment.toLowerCase().includes(q) : false)
+  // compute top restaurants by number of reviews (derived from rawReviews)
+  useEffect(() => {
+    if (!initialized || rawReviews.length === 0) {
+      setTopRestaurants([]);
+      return;
+    }
+    const cnt: Record<string, number> = {};
+    rawReviews.forEach((r) => {
+      const rid = r.resturantId;
+      if (!rid) return;
+      cnt[rid] = (cnt[rid] ?? 0) + 1;
+    });
+    const sorted = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 5); // take candidates
+    (async () => {
+      const list: { id: string; name?: string; location?: string; category?: string; reviewCount: number }[] = [];
+      await Promise.all(
+        sorted.map(async ([rid, count]) => {
+          try {
+            const rest = await getRestaurantById(rid, process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL, (keycloak as any)?.token);
+            list.push({ id: rid, name: rest.name, location: rest.location ?? undefined, category: rest.category ?? undefined, reviewCount: count });
+          } catch {
+            // ignore missing restaurant but keep id/count
+            list.push({ id: rid, reviewCount: count });
+          }
+        })
+      );
+      // sort by reviewCount again and take top 3
+      list.sort((a, b) => b.reviewCount - a.reviewCount);
+      setTopRestaurants(list.slice(0, 3));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawReviews, initialized, keycloak?.token]);
+
+  // compute top users by backend totalCriticScore: pick candidate userIds from reviews then fetch user details
+  useEffect(() => {
+    if (!initialized) {
+      setTopUsers([]);
+      return;
+    }
+    const userCount: Record<string, number> = {};
+    rawReviews.forEach((r) => {
+      const uid = r.userId;
+      if (!uid) return;
+      userCount[uid] = (userCount[uid] ?? 0) + 1;
+    });
+    const candidateIds = Object.keys(userCount).sort((a, b) => (userCount[b] ?? 0) - (userCount[a] ?? 0)).slice(0, 10);
+    if (candidateIds.length === 0) {
+      setTopUsers([]);
+      return;
+    }
+    (async () => {
+      try {
+        const api = createApi(process.env.NEXT_PUBLIC_USER_SERVICE_URL || "");
+        if (isAuth && keycloak?.token) (api as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+        const fetched: { id: string; name?: string; avatar?: string; totalCriticScore?: number }[] = [];
+        await Promise.all(
+          candidateIds.map(async (uid) => {
+            try {
+              const resp = await api.get(`/api/user/${uid}`);
+              const d = resp.data;
+              fetched.push({ id: uid, name: d?.name ?? uid, avatar: d?.userPhoto, totalCriticScore: d?.totalCriticScore ?? 0 });
+            } catch {
+              // ignore missing user
+            }
+          })
+        );
+        fetched.sort((a, b) => (b.totalCriticScore ?? 0) - (a.totalCriticScore ?? 0));
+        setTopUsers(fetched.slice(0, 3));
+      } catch (e) {
+        console.warn("failed to fetch top users", e);
+        setTopUsers([]);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawReviews, initialized, keycloak?.token]);
+
+  // filter/selection effects for the small search UIs
+  useEffect(() => {
+    if (!restaurantQueryFilter.trim()) {
+      setFilteredRestaurantsForFilter(restaurants);
+      return;
+    }
+    const q = restaurantQueryFilter.toLowerCase().trim();
+    setFilteredRestaurantsForFilter(
+      restaurants.filter((r) => (r.name ?? "").toLowerCase().includes(q) || (r.location ?? "").toLowerCase().includes(q) || (r.category ?? "").toLowerCase().includes(q))
     );
-  }, [posts, query]);
+  }, [restaurantQueryFilter, restaurants]);
+
+  useEffect(() => {
+    if (!foodQueryFilter.trim()) {
+      setFilteredFoodsForFilter(foods);
+      return;
+    }
+    const q = foodQueryFilter.toLowerCase().trim();
+    setFilteredFoodsForFilter(
+      foods.filter((f) => (f.f_name ?? "").toLowerCase().includes(q) || (f.description ?? "").toLowerCase().includes(q))
+    );
+  }, [foodQueryFilter, foods]);
+
+  // filtering logic uses dedicated filter states now
+
+  const filteredPosts = useMemo(() => {
+    let arr = posts.slice();
+    const f = reviewsFilters;
+    if (f.title.trim()) {
+      const s = f.title.trim().toLowerCase();
+      arr = arr.filter((p) => p.title.toLowerCase().includes(s));
+    }
+    if (f.description.trim()) {
+      const s = f.description.trim().toLowerCase();
+      arr = arr.filter((p) => p.description.toLowerCase().includes(s));
+    }
+    if (f.username.trim()) {
+      const s = f.username.trim().toLowerCase();
+      arr = arr.filter((p) => (p.user?.name ?? "").toLowerCase().includes(s));
+    }
+    if (f.sentiment) {
+      arr = arr.filter((p) => (p.sentiment ?? "").toLowerCase() === f.sentiment);
+    }
+
+    // apply restaurant filter (selectedRestaurantFilter)
+    if (selectedRestaurantFilter) {
+      arr = arr.filter((p) => (p.restaurant?.id ?? "") === selectedRestaurantFilter.id);
+    }
+
+    // apply food filter (selectedFoodFilter)
+    if (selectedFoodFilter) {
+      arr = arr.filter((p) => (p.food?.id ?? "") === selectedFoodFilter.id);
+    }
+
+    // sorting
+    if (reviewsSort === "likes") {
+      arr.sort((a, b) => (b.likes?.length ?? 0) - (a.likes?.length ?? 0));
+    } else if (reviewsSort === "comments") {
+      arr.sort((a, b) => (b.comments?.length ?? 0) - (a.comments?.length ?? 0));
+    } else {
+      arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    return arr;
+  }, [posts, reviewsFilters, reviewsSort, selectedRestaurantFilter, selectedFoodFilter]);
 
   const filteredRestaurants = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return restaurants;
-    return restaurants.filter(
-      (r) =>
-        r.name.toLowerCase().includes(q) ||
-        (r.description?.toLowerCase().includes(q) ?? false) ||
-        (r.category?.toLowerCase().includes(q) ?? false) ||
-        (r.location?.toLowerCase().includes(q) ?? false)
-        // (r.tags?.some((tag) => tag.toLowerCase().includes(q)) ?? false)
-    );
-  }, [restaurants, query]);
+    let arr = restaurants.slice();
+    const f = restaurantsFilters;
+    if (f.name.trim()) {
+      const s = f.name.trim().toLowerCase();
+      arr = arr.filter((r) => (r.name ?? "").toLowerCase().includes(s));
+    }
+    if (f.description.trim()) {
+      const s = f.description.trim().toLowerCase();
+      arr = arr.filter((r) => (r.description ?? "").toLowerCase().includes(s));
+    }
+    if (f.category.trim()) {
+      const s = f.category.trim().toLowerCase();
+      arr = arr.filter((r) => (r.category ?? "").toLowerCase().includes(s));
+    }
+    if (f.location.trim()) {
+      const s = f.location.trim().toLowerCase();
+      arr = arr.filter((r) => (r.location ?? "").toLowerCase().includes(s));
+    }
+    return arr;
+  }, [restaurants, restaurantsFilters]);
 
   const toggleLike = async (id: string) => {
     if (!isAuth) return alert("Please sign in to like");
@@ -202,15 +415,10 @@ export default function ExplorePage() {
         await fetchReviews();
         return;
       }
-      console.log("found: ", found);
-      
+
       const usersLike = Array.from(found.reactionUsersLike ?? []);
       const already = usersLike.includes(userId);
       const updatedUsersLike = already ? usersLike.filter((u) => u !== userId) : [...usersLike, userId as string];
-      
-      console.log("userslike; ", usersLike);
-      console.log("already: ", already);
-      console.log("updateduserslike: ", updatedUsersLike);
 
       const reviewRequest = {
         id: found.id,
@@ -260,8 +468,7 @@ export default function ExplorePage() {
 
       setCommentsByReview((s) => ({ ...s, [post.id]: comments }));
 
-      setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, comments: comments.map((c: { id: any; user: any; text: any; time: any; }) => ({ id: c.id, user: c.user, text: c.text, time: c.time })) } : p)));
-      
+      setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, comments: comments.map((c: any) => ({ id: c.id, user: c.user, text: c.text, time: c.time })) } : p)));
     } catch (e) {
       console.error("fetch comments failed", e);
     }
@@ -290,7 +497,7 @@ export default function ExplorePage() {
     }
   };
 
-  const handleCreate = async (newPost: { targetType: "food" | "restaurant" | "general", targetId?: string | null | undefined, title: string; description: string; rating?: number }) => {
+  const handleCreate = async (newPost: { targetType: "food" | "restaurant" | "general"; targetId?: string | null | undefined; title: string; description: string; rating?: number }) => {
     if (!isAuth) {
       alert("Please sign in to create review");
       return;
@@ -322,20 +529,19 @@ export default function ExplorePage() {
     }
   };
 
-  // Restaurant details modal logic
   const handleViewRestaurant = async (restaurantId: string) => {
     setSelectedRestaurantId(restaurantId);
     setShowRestaurantModal(true);
     try {
       const rest = await getRestaurantById(restaurantId, process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL, (keycloak as any)?.token);
-      const foodIds: string[] = rest.foodIdList ?? [];
+      const foodIds: string[] = rest.foodIdList ?? rest.foodIdList ?? [];
       const foods: FoodResponse[] = [];
       await Promise.all(
         (foodIds || []).map(async (fid) => {
           try {
             const f = await getFoodById(fid, process.env.NEXT_PUBLIC_FOOD_SERVICE_URL, (keycloak as any)?.token);
             foods.push(f);
-          } catch (e) {
+          } catch {
             // ignore missing food
           }
         })
@@ -353,41 +559,125 @@ export default function ExplorePage() {
     }
   };
 
+  // --- HOOKS AND EFFECTS ABOVE RUN UNCONDITIONALLY (hook rules)
+  // Protect the page UI: if auth provider initialized and user is NOT authenticated, show a sign-in prompt instead of the explore UI.
+  if (initialized && !isAuth) {
+    return (
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="max-w-xl w-full mx-4 rounded-md border bg-card p-6 text-center">
+          <h2 className="text-lg font-semibold">Sign in required</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Please sign in to access Explore features.</p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <AuthButton />
+            <Button variant="ghost" onClick={() => window.location.href = "/"}>Home</Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Top */}
-        <header className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-3 rounded-lg border bg-card px-3 py-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <input aria-label="Search" placeholder={view === "users" ? "Search users..." : view === "reviews" ? "Search reviews, users..." : "Search restaurants, tags..."} value={query} onChange={(e) => setQuery(e.target.value)} className="bg-transparent outline-none text-sm w-72" />
-              {query && <button onClick={() => setQuery("")} className="text-xs text-muted-foreground px-2">Clear</button>}
+      <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+        {/* Top - removed global search; filters shown inside each view */}
+        <div>
+          <header className="flex items-center justify-between gap-4 mb-6">
+            <div />
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2">
+                {isAuth ? (
+                  <Button className="hover:scale-105 transition-transform" variant="default" onClick={() => setShowCreateModal(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add review
+                  </Button>
+                ) : (
+                  <AuthButton />
+                )}
+              </div>
+
+              <div className="sm:hidden">{isAuth ? <Button size="sm" onClick={() => setShowCreateModal(true)}>Add</Button> : <AuthButton />}</div>
             </div>
-          </div>
+          </header>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2">
-              {isAuth ? (
-                <Button variant="default" onClick={() => setShowCreateModal(true)}><Plus className="w-4 h-4 mr-2" />Add review</Button>
-              ) : (
-                <AuthButton />
-              )}
-            </div>
-
-            {/* <ModeToggle /> */}
-            <div className="sm:hidden">{isAuth ? <Button size="sm" onClick={() => setShowCreateModal(true)}>Add</Button> : <AuthButton />}</div>
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <aside className="lg:col-span-3">
-            <ExploreSidebar view={view} setView={setView} />
-          </aside>
-
-          <section className="lg:col-span-6 space-y-6">
+          {/* Central content only */}
+          <section className="space-y-6">
             {view === "reviews" && (
               <>
+                <ReviewsFilters filters={reviewsFilters} setFilters={setReviewsFilters} sort={reviewsSort} setSort={setReviewsSort} />
+
+                {/* Additional filters: restaurant and food selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="text-sm font-medium">Filter by restaurant</label>
+                    <input
+                      className="w-full rounded border px-2 py-1 bg-input"
+                      placeholder="Search restaurants..."
+                      value={selectedRestaurantFilter ? selectedRestaurantFilter.name : restaurantQueryFilter}
+                      onChange={(e) => {
+                        setSelectedRestaurantFilter(null);
+                        setRestaurantQueryFilter(e.target.value);
+                      }}
+                    />
+                    {!selectedRestaurantFilter && restaurantQueryFilter.trim() !== "" && (
+                      <div className="mt-2 max-h-48 overflow-auto border rounded bg-card p-2">
+                        {filteredRestaurantsForFilter.slice(0, 10).map((r) => (
+                          <div key={r.id} className="p-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => { setSelectedRestaurantFilter(r); setRestaurantQueryFilter(r.name ?? ""); }}>
+                            <div className="font-medium">{r.name}</div>
+                            <div className="text-xs text-muted-foreground">{r.location} {r.category ? `· ${r.category}` : ""}</div>
+                          </div>
+                        ))}
+                        {filteredRestaurantsForFilter.length === 0 && <div className="text-sm text-muted-foreground">No matches</div>}
+                      </div>
+                    )}
+                    {selectedRestaurantFilter && (
+                      <div className="mt-2 flex items-center justify-between gap-2 p-2 border rounded bg-muted/5">
+                        <div>
+                          <div className="font-medium">{selectedRestaurantFilter.name}</div>
+                          <div className="text-xs text-muted-foreground">{selectedRestaurantFilter.location}</div>
+                        </div>
+                        <div>
+                          <Button size="sm" variant="ghost" onClick={() => { setSelectedRestaurantFilter(null); setRestaurantQueryFilter(""); }}>Clear</Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Filter by food</label>
+                    <input
+                      className="w-full rounded border px-2 py-1 bg-input"
+                      placeholder="Search foods..."
+                      value={selectedFoodFilter ? selectedFoodFilter.f_name : foodQueryFilter}
+                      onChange={(e) => {
+                        setSelectedFoodFilter(null);
+                        setFoodQueryFilter(e.target.value);
+                      }}
+                    />
+                    {!selectedFoodFilter && foodQueryFilter.trim() !== "" && (
+                      <div className="mt-2 max-h-48 overflow-auto border rounded bg-card p-2">
+                        {filteredFoodsForFilter.slice(0, 10).map((f) => (
+                          <div key={f.id} className="p-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => { setSelectedFoodFilter(f); setFoodQueryFilter(f.f_name ?? ""); }}>
+                            <div className="font-medium">{f.f_name}</div>
+                            <div className="text-xs text-muted-foreground">{f.description}</div>
+                          </div>
+                        ))}
+                        {filteredFoodsForFilter.length === 0 && <div className="text-sm text-muted-foreground">No matches</div>}
+                      </div>
+                    )}
+                    {selectedFoodFilter && (
+                      <div className="mt-2 flex items-center justify-between gap-2 p-2 border rounded bg-muted/5">
+                        <div>
+                          <div className="font-medium">{selectedFoodFilter.f_name}</div>
+                          <div className="text-xs text-muted-foreground">{selectedFoodFilter.description}</div>
+                        </div>
+                        <div>
+                          <Button size="sm" variant="ghost" onClick={() => { setSelectedFoodFilter(null); setFoodQueryFilter(""); }}>Clear</Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {loading && (
                   <>
                     <Skeleton className="h-24 w-full rounded-md" />
@@ -395,25 +685,24 @@ export default function ExplorePage() {
                     <Skeleton className="h-24 w-full rounded-md" />
                   </>
                 )}
+
                 {!loading && filteredPosts.length === 0 && <div className="rounded border p-4 text-center text-muted-foreground">No posts found.</div>}
-                {!loading && filteredPosts
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .map((post) => (
-                  <FeedPost
-                    key={post.id}
-                    post={post}
-                    liked={!!liked[post.id]}
-                    isAuth={isAuth}
-                    onToggleLike={(id) => toggleLike(id)}
-                    onOpenComments={(p) => openComments(p)}
-                    onRequireAuth={() => alert("Please sign in to perform this action.")}
-                  />
-                ))}
+
+                {!loading &&
+                  filteredPosts.map((post) => (
+                    <FeedPost
+                      key={post.id}
+                      post={post}
+                      liked={!!liked[post.id]}
+                      isAuth={isAuth}
+                      onToggleLike={(id) => toggleLike(id)}
+                      onOpenComments={(p) => openComments(p)}
+                      onRequireAuth={() => alert("Please sign in to perform this action.")}
+                    />
+                  ))}
               </>
             )}
 
-            
-            {/* Review details modal */}
             {showReviewModal && selectedReview && (
               <ReviewDetailsModal
                 open={showReviewModal}
@@ -430,6 +719,8 @@ export default function ExplorePage() {
 
             {view === "restaurants" && (
               <>
+                <RestaurantsFilters filters={restaurantsFilters} setFilters={setRestaurantsFilters} />
+
                 {loading && (
                   <>
                     <Skeleton className="h-24 w-full rounded-md" />
@@ -437,96 +728,83 @@ export default function ExplorePage() {
                     <Skeleton className="h-24 w-full rounded-md" />
                   </>
                 )}
-                {!loading && filteredRestaurants.length === 0 && <div className="rounded border p-4 text-center text-muted-foreground">No restaurants found.</div>}
+
+                {!loading && filteredRestaurants.length === 0 && (
+                  <div className="rounded border p-4 text-center text-muted-foreground">No restaurants found.</div>
+                )}
+
                 <div className="space-y-4">
-                  {!loading && filteredRestaurants.map((r) => (
-                    <article key={r.id} className="rounded-md border bg-card p-0 overflow-hidden shadow-sm">
-                      <div className="flex flex-col sm:flex-row">
-                        <div className="flex flex-row p-4 flex-1 gap-2 justify-between">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="font-semibold">{r.name}</div>
-                              {/* {r.address && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {r.address}
-                                </div>
-                              )} */}
-                              {r.location && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {r.location}
-                                </div>
-                              )}
-                              {r.category && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  Category: {r.category}
-                                </div>
-                              )}
-                            </div>
+                  {!loading &&
+                    filteredRestaurants.map((r) => (
+                      <article key={r.id} className="rounded-md border bg-card p-4 overflow-hidden shadow-sm">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="font-semibold">{r.name}</div>
+                            {r.location && <div className="text-xs text-muted-foreground mt-1">{r.location}</div>}
+                            {r.category && <div className="text-xs text-muted-foreground mt-1">Category: {r.category}</div>}
                           </div>
-                          <div className="mt-3 flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleViewRestaurant(r.id)}
-                            >
-                              View details
-                            </Button>
+                          <div className="mt-1">
+                            <Button size="sm" onClick={() => handleViewRestaurant(r.id)}>View details</Button>
                           </div>
                         </div>
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    ))}
                 </div>
               </>
             )}
 
             {view === "users" && (
               <>
-              {loading && (
-                  <>
-                    <Skeleton className="h-24 w-full rounded-md" />
-                    <Skeleton className="h-24 w-full rounded-md" />
-                    <Skeleton className="h-24 w-full rounded-md" />
-                  </>
-                )}
-              
-              {!loading && <UsersGrid />}
+                {/* users view contains its own search so we hide the global filters */}
+                {!loading && <UsersGrid />}
               </>
             )}
 
-            {view === "ai" && (
-              <AITools />
-            )}
+            {view === "ai" && <AITools />}
           </section>
-
-          <aside className="lg:col-span-3">
-            <div className="sticky top-24 space-y-4">
-              <Card>
-                <CardHeader><CardTitle>Bulletin</CardTitle></CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 text-sm text-muted-foreground">
-                    <li>New: AI recipe generator coming soon — try beta in AI Tools.</li>
-                    <li>Tip: Verify your email to appear in local leaderboards.</li>
-                    <li>Suggestion: Add trending dishes from your city (coming).</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Trending</CardTitle></CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    <li className="flex items-center justify-between text-sm"><span>Ramen spots</span><span className="text-xs text-muted-foreground">24 new</span></li>
-                    <li className="flex items-center justify-between text-sm"><span>Street tacos</span><span className="text-xs text-muted-foreground">18 new</span></li>
-                    <li className="flex items-center justify-between text-sm"><span>Plant-based desserts</span><span className="text-xs text-muted-foreground">9 new</span></li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-          </aside>
         </div>
+
+        {/* Sidebar / bulletin */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-20 space-y-6 border-l p-6 bg-sidebar">
+            <div className="rounded-md border bg-card p-4">
+              <h4 className="font-semibold">Top reviewed restaurants</h4>
+              <div className="mt-3 space-y-3">
+                {topRestaurants.length === 0 && <div className="text-sm text-muted-foreground">No data</div>}
+                {topRestaurants.map((r) => (
+                  <div key={r.id} className="p-2 rounded border bg-muted/5 border-sidebar-foreground/20 bg-sidebar">
+                    <div className="font-medium">{r.name ?? r.id}</div>
+                    <div className="text-xs text-muted-foreground">{r.location ?? "Unknown location"} {r.category ? `· ${r.category}` : ""}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Reviews: {r.reviewCount}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-md border bg-card p-4">
+              <h4 className="font-semibold">Top critics</h4>
+              <div className="mt-3 space-y-3">
+                {topUsers.length === 0 && <div className="text-sm text-muted-foreground">No data</div>}
+                {topUsers.map((u) => (
+                  <div key={u.id} className="flex items-center gap-3 p-2 rounded border bg-muted/5 border-sidebar-foreground/20 bg-sidebar">
+                    {u.avatar ? (
+                      <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded object-cover border" />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs">{(u.name ?? "U").charAt(0)}</div>
+                    )}
+                    <div className="flex-1">
+                      <div className="font-medium">{u.name}</div>
+                      <div className="text-xs text-muted-foreground">Score: {u.totalCriticScore ?? 0}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
 
-      {/* Restaurant details modal */}
+      {/* Restaurant details modal (unchanged) */}
       {showRestaurantModal && restaurantDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true">
           <div className="max-w-3xl w-full bg-card rounded-lg shadow-lg overflow-hidden">
@@ -540,9 +818,7 @@ export default function ExplorePage() {
               </div>
               <div>
                 <h3 className="font-medium mt-4 mb-2">Foods</h3>
-                {restaurantDetails.foods.length === 0 && (
-                  <div className="text-sm text-muted-foreground">No foods linked to this restaurant.</div>
-                )}
+                {restaurantDetails.foods.length === 0 && <div className="text-sm text-muted-foreground">No foods linked to this restaurant.</div>}
                 <ul className="space-y-3">
                   {restaurantDetails.foods.map((f) => (
                     <li key={f.id} className="flex items-center gap-3">
@@ -554,7 +830,6 @@ export default function ExplorePage() {
                       <div className="flex-1">
                         <div className="font-medium">{f.f_name}</div>
                         {f.description && <div className="text-sm text-muted-foreground">{f.description}</div>}
-                        {/* <div className="text-xs text-muted-foreground mt-1">id: {f.id}</div> */}
                       </div>
                     </li>
                   ))}
@@ -569,11 +844,7 @@ export default function ExplorePage() {
       )}
 
       {/* Create review modal */}
-      <CreateReviewModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        onCreate={async (p) => await handleCreate(p)}
-      />
+      <CreateReviewModal open={showCreateModal} onOpenChange={setShowCreateModal} onCreate={async (p) => await handleCreate(p)} />
     </main>
   );
 }

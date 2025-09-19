@@ -8,6 +8,7 @@ import { getVisitById, getVisitByRestaurantId } from "@/lib/visitService";
 import { getFoodById } from "@/lib/foodService";
 import type { FoodResponse } from "@/lib/foodService";
 import { format } from "date-fns";
+import createApi from "@/lib/api";
 
 export default function RestaurantDetails({
   restaurantId,
@@ -25,6 +26,9 @@ export default function RestaurantDetails({
   const [visit, setVisit] = useState<any | null>(null);
   const [foods, setFoods] = useState<FoodResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!open) return;
@@ -49,6 +53,35 @@ export default function RestaurantDetails({
           })
         );
         if (!cancelled) setFoods(fetched);
+        // fetch reviews for this restaurant (fallback to fetching all and filtering)
+        try {
+          const reviewApi = createApi(process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL || "");
+          if (keycloak?.token) (reviewApi as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+          const rResp = await reviewApi.get("/api/review");
+          const all = rResp.data || [];
+          console.log("all fetched reviews", all);
+          
+          const related = (all as any[]).filter((r) => String(r.resturantId) === String(restaurantId));
+          setReviews(related);
+          // fetch user names for reviewers
+          const userApi = createApi(process.env.NEXT_PUBLIC_USER_SERVICE_URL || "");
+          if (keycloak?.token) (userApi as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+          const uids = Array.from(new Set(related.map((r) => r.userId).filter(Boolean)));
+          const namesMap: Record<string, string> = {};
+          await Promise.all(
+            uids.map(async (uid) => {
+              try {
+                const u = await userApi.get(`/api/user/${uid}`);
+                namesMap[uid] = u.data?.name ?? uid;
+              } catch {
+                namesMap[uid] = uid;
+              }
+            })
+          );
+          if (!cancelled) setUserNames(namesMap);
+        } catch (e) {
+          console.warn("failed to fetch reviews for restaurant", e);
+        }
       } catch (e) {
         console.error("failed loading restaurant details", e);
         if (!cancelled) setError("Failed to load details");
@@ -60,7 +93,7 @@ export default function RestaurantDetails({
     return () => {
       cancelled = true;
     };
-  }, [open, restaurantId, token, initialized]);
+  }, [open, restaurantId, token, initialized, keycloak]);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -105,6 +138,23 @@ export default function RestaurantDetails({
                   ))}
                 </ul>
               </div>
+
+              <div>
+                <div className="font-medium mt-4 mb-2">Reviews for this restaurant</div>
+                {reviews.length === 0 && <div className="text-sm text-muted-foreground">No reviews found for this restaurant.</div>}
+                <ul className="space-y-3">
+                  {reviews.map((r) => (
+                    <li key={r.id} className="rounded border p-3 bg-card">
+                      <div className="font-medium">{r.title ?? "(no title)"}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{r.description}</div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        By: {userNames[r.userId] ?? r.userId} · {r.createdAt ? format(new Date(r.createdAt), "PPpp") : ""}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
             </div>
           )}
         </div>

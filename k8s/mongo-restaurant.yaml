@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mongodb-review-pvc
+  name: mongodb-restaurant-pvc
 spec:
   accessModes:
     - ReadWriteOnce
@@ -14,21 +14,21 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mongodb-review-deployment
+  name: mongodb-restaurant-deployment
   labels:
-    app: mongodb-review
+    app: mongodb-restaurant
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mongodb-review
+      app: mongodb-restaurant
   template:
     metadata:
       labels:
-        app: mongodb-review
+        app: mongodb-restaurant
     spec:
       containers:
-      - name: mongodb-review
+      - name: mongodb-restaurant
         image: mongo:7.0.5
         ports:
         - containerPort: 27017
@@ -44,7 +44,7 @@ spec:
               name: app-secret 
               key: mongo-password
         - name: MONGO_INITDB_DATABASE
-          value: review-service
+          value: rest-service
         resources:
           requests:
             cpu: "100m"     
@@ -58,17 +58,17 @@ spec:
       volumes:
         - name: mongodb-data
           persistentVolumeClaim:
-            claimName: mongodb-review-pvc
+            claimName: mongodb-restaurant-pvc
 
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongodb-review-service
+  name: mongodb-restaurant-service
 spec:
   selector:
-    app: mongodb-review
+    app: mongodb-restaurant
   ports:
     - protocol: TCP
       port: 27017

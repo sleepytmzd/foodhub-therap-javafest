@@ -48,7 +48,8 @@ spec:
             memory: "1Gi"
         volumeMounts:
         - name: postgres-storage
-          mountPath: /var/lib/postgresql/user/data
+          mountPath: /var/lib/postgresql/data
+          subPath: user
       volumes:
       - name: postgres-storage
         persistentVolumeClaim:

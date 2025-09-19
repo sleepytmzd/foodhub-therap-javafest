@@ -6,6 +6,8 @@ import createApi from "@/lib/api";
 import FeedPost, { ReviewPost } from "@/components/explore/FeedPost";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "../ui/skeleton";
+import { getFoodById } from "@/lib/foodService";
+import { getRestaurantById } from "@/lib/restaurantService";
 
 type ReviewResponse = {
   id: string;
@@ -27,9 +29,11 @@ type ReviewResponse = {
 export default function UserReviewsFeed({
   profileUserId,
   profileUserName,
+  profileUserPhoto,
 }: {
   profileUserId: string;
   profileUserName?: string | null;
+  profileUserPhoto?: string | null;
 }) {
   const { initialized, keycloak } = useAuth();
   const isAuth = !!(initialized && keycloak && (keycloak as any).authenticated);
@@ -68,7 +72,7 @@ export default function UserReviewsFeed({
 
         const mapped: ReviewPost[] = mine.map((r) => ({
           id: r.id,
-          user: { id: r.userId ?? "unknown", name: profileUserName ?? (r.userId ?? "User"), avatar: undefined },
+          user: { id: r.userId ?? "unknown", name: profileUserName ?? (r.userId ?? "User"), avatar: profileUserPhoto ?? undefined },
           title: r.title ?? "(no title)",
           description: r.description ?? "",
           rating: undefined,
@@ -76,7 +80,34 @@ export default function UserReviewsFeed({
           comments: [], // filled below
           likes: r.reactionUsersLike ?? [],
           sentiment: r.sentiment ?? null,
+          food: undefined,
+          restaurant: undefined,
         }));
+
+        // enrich mapped with food/restaurant details
+        await Promise.all(
+          mine.map(async (r, idx) => {
+            try {
+              if (r.foodId) {
+                const f = await getFoodById(r.foodId, process.env.NEXT_PUBLIC_FOOD_SERVICE_URL, token);
+                mapped[idx].food = f;
+              } else if (r.resturantId) {
+                const rest = await getRestaurantById(r.resturantId, process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL, token);
+                mapped[idx].restaurant = {
+                  id: rest.id ?? undefined,
+                  name: rest.name ?? undefined,
+                  location: rest.location ?? undefined,
+                  category: rest.category ?? undefined,
+                  weblink: rest.weblink ?? undefined,
+                };
+              }
+            } catch (e) {
+              // ignore
+            }
+          })
+        );
+
+        if (cancelled) return;
         setPosts(mapped);
 
         const myId = (keycloak as any)?.tokenParsed?.sub ?? null;

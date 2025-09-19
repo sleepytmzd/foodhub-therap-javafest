@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -25,6 +26,9 @@ public class Users {
     private String userPhoto;
     private String location;
     private float totalCriticScore;
+    private float coins;
+    private LocalDateTime createdAt;
+    private LocalDateTime lastRechargedAt;
     private List<String> following;
     private List<String> followers;
     private List<String> visits;

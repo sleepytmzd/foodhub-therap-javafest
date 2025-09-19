@@ -211,13 +211,32 @@ export default function CreateReviewModal({
                       <div>
                         <div className="font-medium">{f.f_name}</div>
                         {f.description && <div className="text-xs text-muted-foreground">{f.description}</div>}
-                        <div className="text-xs text-muted-foreground mt-1">Created by: {f.user_id ?? "unknown"}</div>
+                        {/* <div className="text-xs text-muted-foreground mt-1">Created by: {f.user_id ?? "unknown"}</div> */}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              {selectedFood && <div className="text-xs text-muted-foreground">Selected: {selectedFood.f_name}</div>}
+              <div className="text-md text-muted-foreground">
+                Selected:
+              </div>
+              {selectedFood && (
+                 <div className="mt-2 p-2 border rounded bg-muted/5 flex items-center gap-3">
+                   {selectedFood.image_url ? (
+                     <img src={selectedFood.image_url} alt={selectedFood.f_name} className="w-12 h-12 rounded object-cover border" />
+                   ) : (
+                     <div className="w-12 h-12 rounded bg-muted" />
+                   )}
+                   <div className="flex-1">
+                     <div className="font-medium">{selectedFood.f_name}</div>
+                     {selectedFood.description && <div className="text-xs text-muted-foreground">{selectedFood.description}</div>}
+                     <div className="text-xs text-muted-foreground mt-1">id: {selectedFood.id}</div>
+                   </div>
+                   <div>
+                     <Button size="sm" variant="ghost" onClick={() => setSelectedFood(null)}>Clear</Button>
+                   </div>
+                 </div>
+               )}
             </div>
           )}
 
@@ -247,7 +266,24 @@ export default function CreateReviewModal({
                 ))}
               </div>
 
-              {selectedRestaurant && <div className="text-xs text-muted-foreground">Selected: {selectedRestaurant.name ?? selectedRestaurant.resturantName}</div>}
+              <div className="text-md text-muted-foreground">
+                Selected:
+              </div>
+              {selectedRestaurant && (
+                 <div className="mt-2 p-2 border rounded bg-muted/5">
+                   <div className="flex items-start justify-between">
+                     <div>
+                       <div className="font-medium">{selectedRestaurant.name ?? selectedRestaurant.resturantName}</div>
+                       <div className="text-xs text-muted-foreground mt-1">{selectedRestaurant.address ?? selectedRestaurant.location ?? "Unknown location"} · {selectedRestaurant.time ? format(new Date(selectedRestaurant.time), "PPpp") : "No time"}</div>
+                       <div className="text-xs text-muted-foreground mt-1">{(selectedRestaurant.recentFoods || []).slice(0,3).join(", ")}</div>
+                       {selectedRestaurant.description && <div className="text-sm text-muted-foreground mt-2">{selectedRestaurant.description}</div>}
+                     </div>
+                     <div className="ml-4">
+                       <Button size="sm" variant="ghost" onClick={() => setSelectedRestaurant(null)}>Clear</Button>
+                     </div>
+                   </div>
+                 </div>
+               )}
             </div>
           )}
 
