@@ -83,14 +83,14 @@ export default function UsersGrid() {
         {filtered.map((u) => (
           <div
             key={u.id}
-            className="rounded-md border p-3 flex items-center gap-3 bg-card"
+            className="rounded-md border p-3 flex items-center gap-3 bg-card hover:scale-101 transition-transform hover:shadow-md"
           >
             <div>
               {u.userPhoto ? (
                 <img
                   src={u.userPhoto}
                   alt={u.name ?? u.id}
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="w-12 h-12 rounded-full object-cover "
                 />
               ) : (
                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-sm font-medium">

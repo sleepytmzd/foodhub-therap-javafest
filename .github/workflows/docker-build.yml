@@ -37,7 +37,7 @@ jobs:
           IMAGE_TAG=${{ github.sha }}
 
           # List of your Spring Boot microservices
-          SERVICES=("food-service" "image-service-sb" "visit-service" "review-service" "user-service")
+          SERVICES=("food-service" "image-service-sb" "restaurant-service" "review-service" "user-service" "hangout-service")
 
           for SERVICE in "${SERVICES[@]}"; do
             echo "Packaging and building $SERVICE ..."
@@ -56,7 +56,20 @@ jobs:
           IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/frontend:$IMAGE_TAG"
           docker build -t $IMAGE_NAME --network=host ./frontend
           docker push $IMAGE_NAME
-      
+
+          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/recomm-agent:$IMAGE_TAG"
+          docker build -t $IMAGE_NAME ./recomm-agent
+          docker push $IMAGE_NAME
+
+          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/negative-positive-agent:$IMAGE_TAG"
+          docker build -t $IMAGE_NAME ./negative-positive-agent
+          docker push $IMAGE_NAME
+
+          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/nutrition-predict-agent:$IMAGE_TAG"
+          docker build -t $IMAGE_NAME ./nutrition-predict-agent
+          docker push $IMAGE_NAME
+
+
   deploy:
     if: "!contains(github.event.head_commit.message, 'skip cd')"
     runs-on: ubuntu-latest
@@ -80,7 +93,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           IMAGE_TAG=${{ github.sha }}
-          SERVICES=("food-service" "image-service-sb" "visit-service" "review-service" "user-service" "frontend")
+          SERVICES=("food-service" "image-service-sb" "review-service" "user-service" "frontend" "restaurant-service" "hangout-service" "recomm-agent" "negative-positive-agent" "nutrition-predict-agent")
 
           for SERVICE in "${SERVICES[@]}"; do
             kubectl set image deployment.apps/"$SERVICE"-deployment \

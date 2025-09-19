@@ -29,22 +29,22 @@ export default function RestaurantsFilters({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <Label className="text-xs">Name</Label>
-          <Input value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} placeholder="Filter by name" />
+          <Input className="bg-card" value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} placeholder="Filter by name" />
         </div>
 
         <div>
           <Label className="text-xs">Category</Label>
-          <Input value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })} placeholder="Filter by category" />
+          <Input className="bg-card" value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })} placeholder="Filter by category" />
         </div>
 
         <div>
           <Label className="text-xs">Location</Label>
-          <Input value={filters.location} onChange={(e) => setFilters({ ...filters, location: e.target.value })} placeholder="Filter by location" />
+          <Input className="bg-card" value={filters.location} onChange={(e) => setFilters({ ...filters, location: e.target.value })} placeholder="Filter by location" />
         </div>
 
         <div className="sm:col-span-2">
           <Label className="text-xs">Description</Label>
-          <Input value={filters.description} onChange={(e) => setFilters({ ...filters, description: e.target.value })} placeholder="Filter by description" />
+          <Input className="bg-card" value={filters.description} onChange={(e) => setFilters({ ...filters, description: e.target.value })} placeholder="Filter by description" />
         </div>
       </div>
 

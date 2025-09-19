@@ -38,7 +38,7 @@ export default function FeedPost({
   onRequireAuth: () => void;
 }) {
   return (
-    <article className="rounded-md border bg-card p-4 shadow-sm">
+    <article className="rounded-md border bg-card p-4 shadow-sm hover:scale-101 transition-transform hover:shadow-lg">
       <header className="flex items-start gap-3">
         <Avatar className="size-12">
           {post.user.avatar ? (

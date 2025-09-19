@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: sleepytmzd/user-service:v4
+        image: sleepytmzd/user-service:v6
         ports:
         - containerPort: 8084
         env:
@@ -57,6 +57,8 @@ spec:
             configMapKeyRef:
               name: app-config 
               key: kc-issuer-url
+        - name: STARTING_COINS
+          value: "20"
 
         startupProbe:
           httpGet:

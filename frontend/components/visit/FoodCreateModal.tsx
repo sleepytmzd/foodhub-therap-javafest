@@ -86,7 +86,7 @@ export default function FoodCreateModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium">Image (optional)</label>
+            <label className="text-sm font-medium">Image</label>
             <input
               type="file"
               accept="image/*"
@@ -94,7 +94,7 @@ export default function FoodCreateModal({
                 const f = e.target.files?.[0] ?? null;
                 setImage(f);
               }}
-              className="mt-1"
+              className="mt-1 border border-input rounded bg-muted/5 hover:bg-muted/10"
             />
             {image && <div className="text-xs text-muted-foreground mt-1">{image.name}</div>}
           </div>

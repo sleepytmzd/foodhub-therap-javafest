@@ -156,7 +156,7 @@ export default function UserFoodsModal({
 
           <ul className="space-y-3">
             {foods.map((f) => (
-              <li key={f.id} className="flex items-start gap-3 p-3 rounded border bg-card">
+              <li key={f.id} className="flex items-start gap-3 p-3 rounded border bg-card hover:scale-101 transition-transform hover:shadow-md">
                 {f.image_url ? (
                   <img src={f.image_url} alt={f.f_name} className="w-20 h-20 rounded object-cover border" />
                 ) : (

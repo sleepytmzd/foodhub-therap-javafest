@@ -20,6 +20,8 @@ import UsersGrid from "@/components/explore/UsersGrid";
 import ReviewsFilters, { ReviewsFilterState } from "@/components/explore/ReviewsFilters";
 import RestaurantsFilters, { RestaurantsFilterState } from "@/components/explore/RestaurantsFilters";
 import { format } from "date-fns";
+import useToast from "@/components/ui/use-toast";
+import FoodsGrid from "@/components/explore/FoodsGrid";
 
 type ReviewResponse = {
   id: string;
@@ -48,7 +50,7 @@ export default function ExplorePage() {
   const [topUsers, setTopUsers] = useState<{ id: string; name?: string; avatar?: string; totalCriticScore?: number }[]>([]);
 
   // derive view from query param set by Navbar
-  const initialView = (searchParams.get("view") as "reviews" | "restaurants" | "users" | "ai") || "reviews";
+  const initialView = (searchParams.get("view") as "reviews" | "restaurants" | "users" | "ai" | "foods") || "reviews";
   const [view, setView] = useState<typeof initialView>(initialView);
 
   useEffect(() => {
@@ -81,12 +83,19 @@ export default function ExplorePage() {
   const [foodQueryFilter, setFoodQueryFilter] = useState("");
   const [filteredFoodsForFilter, setFilteredFoodsForFilter] = useState<FoodResponse[]>([]);
   const [selectedFoodFilter, setSelectedFoodFilter] = useState<FoodResponse | null>(null);
+  // modal food add UI state
+  const [modalFoodQuery, setModalFoodQuery] = useState("");
+  const [modalFilteredFoods, setModalFilteredFoods] = useState<FoodResponse[]>([]);
+  const [modalSaving, setModalSaving] = useState(false);
+  // removing state for individual food removes
+  const [removingFoodIds, setRemovingFoodIds] = useState<Record<string, boolean>>({});
   // restaurant filter (search + select)
   const [restaurantQueryFilter, setRestaurantQueryFilter] = useState("");
   const [filteredRestaurantsForFilter, setFilteredRestaurantsForFilter] = useState<RestaurantDto[]>([]);
   const [selectedRestaurantFilter, setSelectedRestaurantFilter] = useState<RestaurantDto | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const {toast} = useToast();
 
   // new filter states
   const [reviewsFilters, setReviewsFilters] = useState<ReviewsFilterState>({
@@ -106,6 +115,7 @@ export default function ExplorePage() {
 
   const apiBase = process.env.NEXT_PUBLIC_REVIEW_SERVICE_URL || "";
   const userServiceBase = process.env.NEXT_PUBLIC_USER_SERVICE_URL || apiBase;
+  const restaurantServiceBase = process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL || "";
   const apiClient = () => {
     const api = createApi(apiBase);
     if (isAuth && keycloak?.token) {
@@ -116,6 +126,14 @@ export default function ExplorePage() {
 
   const userApiClient = () => {
     const api = createApi(userServiceBase);
+    if (isAuth && keycloak?.token) {
+      (api as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
+    }
+    return api;
+  };
+
+  const restaurantApiClient = () => {
+    const api = createApi(restaurantServiceBase);
     if (isAuth && keycloak?.token) {
       (api as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
     }
@@ -342,6 +360,15 @@ export default function ExplorePage() {
   }, [foodQueryFilter, foods]);
 
   // filtering logic uses dedicated filter states now
+  // modal food query updates (local to modal, uses global foods list)
+  useEffect(() => {
+    if (!modalFoodQuery.trim()) {
+      setModalFilteredFoods([]);
+      return;
+    }
+    const q = modalFoodQuery.toLowerCase().trim();
+    setModalFilteredFoods(foods.filter((f) => (f.f_name ?? "").toLowerCase().includes(q) || (f.description ?? "").toLowerCase().includes(q)).slice(0, 10));
+  }, [modalFoodQuery, foods]);
 
   const filteredPosts = useMemo(() => {
     let arr = posts.slice();
@@ -554,8 +581,47 @@ export default function ExplorePage() {
         weblink: rest.weblink ?? undefined,
         foods,
       });
+      // reset modal helper states
+      setModalFoodQuery("");
+      setModalFilteredFoods([]);
     } catch (e) {
       setRestaurantDetails(null);
+    }
+  };
+
+  // remove a food from restaurant immediately (backend + UI)
+  const removeFoodFromRestaurant = async (foodId: string) => {
+    if (!selectedRestaurantId) return;
+    // guard and optimistic lock
+    setRemovingFoodIds((s) => ({ ...s, [foodId]: true }));
+    try {
+      const api = restaurantApiClient();
+      // fetch latest restaurant to avoid clobbering concurrent changes
+      const rest = await getRestaurantById(selectedRestaurantId, process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL, (keycloak as any)?.token);
+      const currentFoodIds: string[] = rest.foodIdList ?? [];
+      const updatedFoodIds = currentFoodIds.filter((id) => id !== foodId);
+
+      const payload = { ...rest, foodIdList: updatedFoodIds };
+      await api.put(`/api/restaurant/${selectedRestaurantId}`, payload);
+
+      // update local modal UI
+      setRestaurantDetails((prev) => {
+        if (!prev) return prev;
+        return { ...prev, foods: prev.foods.filter((ff) => ff.id !== foodId) };
+      });
+
+      // refresh lists
+      await fetchRestaurants();
+      toast?.({ title: "Removed", description: "Food removed from restaurant." });
+    } catch (e) {
+      console.error("removeFoodFromRestaurant failed", e);
+      toast?.({ title: "Remove failed", description: "Could not remove food from restaurant.", variant: "destructive" });
+    } finally {
+      setRemovingFoodIds((s) => {
+        const copy = { ...s };
+        delete copy[foodId];
+        return copy;
+      });
     }
   };
 
@@ -736,7 +802,7 @@ export default function ExplorePage() {
                 <div className="space-y-4">
                   {!loading &&
                     filteredRestaurants.map((r) => (
-                      <article key={r.id} className="rounded-md border bg-card p-4 overflow-hidden shadow-sm">
+                      <article key={r.id} className="rounded-md border bg-card p-4 overflow-hidden shadow-sm hover:scale-101 transition-transform hover:shadow-md">
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="font-semibold">{r.name}</div>
@@ -761,6 +827,7 @@ export default function ExplorePage() {
             )}
 
             {view === "ai" && <AITools />}
+            {view === "foods" && <FoodsGrid />}
           </section>
         </div>
 
@@ -828,15 +895,94 @@ export default function ExplorePage() {
                         <div className="w-16 h-16 rounded bg-muted flex items-center justify-center text-xs">No image</div>
                       )}
                       <div className="flex-1">
-                        <div className="font-medium">{f.f_name}</div>
-                        {f.description && <div className="text-sm text-muted-foreground">{f.description}</div>}
+                        <div className="font-medium">{f.description}</div>
+                        {f.description && <div className="text-sm text-muted-foreground">{f.f_name}</div>}
+                      </div>
+                      <div>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={!!removingFoodIds[f.id]}
+                          onClick={() => removeFoodFromRestaurant(f.id)}
+                        >
+                          {removingFoodIds[f.id] ? "Removing…" : "Remove"}
+                        </Button>
                       </div>
                     </li>
                   ))}
                 </ul>
               </div>
+              {/* Add foods UI */}
+              <div className="mt-4">
+                <h4 className="font-medium mb-2">Add foods to this restaurant</h4>
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 rounded border px-2 py-1 bg-input"
+                    placeholder="Search foods by name or description..."
+                    value={modalFoodQuery}
+                    onChange={(e) => setModalFoodQuery(e.target.value)}
+                  />
+                  <Button onClick={() => setModalFoodQuery("")} variant="ghost">Clear</Button>
+                </div>
+                {modalFilteredFoods.length > 0 && (
+                  <div className="mt-2 max-h-44 overflow-auto border rounded bg-card p-2 space-y-2">
+                    {modalFilteredFoods.map((mf) => {
+                      const already = restaurantDetails.foods.some((ff) => ff.id === mf.id);
+                      return (
+                        <div key={mf.id} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
+                          <div>
+                            <div className="font-medium">{mf.f_name}</div>
+                            {mf.description && <div className="text-xs text-muted-foreground">{mf.description}</div>}
+                          </div>
+                          <div>
+                            <Button size="sm" disabled={already} onClick={() => {
+                              if (already) return;
+                              setRestaurantDetails((prev) => {
+                                if (!prev) return prev;
+                                return { ...prev, foods: [...prev.foods, mf] };
+                              });
+                            }}>
+                              {already ? "Added" : "Add"}
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <div className="pt-4 border-t flex items-center justify-end gap-2">
-                <Button onClick={() => setShowRestaurantModal(false)} variant="ghost">Close</Button>
+                <Button variant="secondary" onClick={async () => {
+                  setShowRestaurantModal(false);
+                }}>Close</Button>
+                <Button
+                  onClick={async () => {
+                    if (!selectedRestaurantId) return;
+                    setModalSaving(true);
+                    try {
+                      // fetch latest restaurant, update foodIdList, PUT back
+                      const api = restaurantApiClient();
+                      const rest = await getRestaurantById(selectedRestaurantId, process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL, (keycloak as any)?.token);
+                      const updatedFoodIds = Array.from(new Set([...(rest.foodIdList ?? []), ...(restaurantDetails.foods.map((ff) => ff.id ?? "").filter(Boolean))]));
+                      const payload = { ...rest, foodIdList: updatedFoodIds };
+                      // backend might expect /api/restaurant/:id
+                      await api.put(`/api/restaurant/${selectedRestaurantId}`, payload);
+                      toast?.({ title: "Updated", description: "Restaurant foods updated." });
+                      // refresh local restaurants & modal data
+                      await fetchRestaurants();
+                      // re-load restaurant details to reflect backend canonical data
+                      await handleViewRestaurant(selectedRestaurantId);
+                    } catch (e) {
+                      console.error("update restaurant foods failed", e);
+                      toast?.({ title: "Update failed", description: "Could not update restaurant on backend.", variant: "destructive" });
+                    } finally {
+                      setModalSaving(false);
+                    }
+                  }}
+                  disabled={modalSaving}
+                >
+                  {modalSaving ? "Saving…" : "Save foods"}
+                </Button>
               </div>
             </div>
           </div>

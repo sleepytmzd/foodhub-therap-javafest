@@ -46,17 +46,17 @@ export default function ReviewsFilters({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <Label className="text-xs">Title</Label>
-          <Input value={filters.title} onChange={(e) => setFilters({ ...filters, title: e.target.value })} placeholder="Filter by title" />
+          <Input className="bg-card" value={filters.title} onChange={(e) => setFilters({ ...filters, title: e.target.value })} placeholder="Filter by title" />
         </div>
 
         <div>
           <Label className="text-xs">Username</Label>
-          <Input value={filters.username} onChange={(e) => setFilters({ ...filters, username: e.target.value })} placeholder="Filter by user" />
+          <Input className="bg-card" value={filters.username} onChange={(e) => setFilters({ ...filters, username: e.target.value })} placeholder="Filter by user" />
         </div>
 
         <div className="sm:col-span-2">
           <Label className="text-xs">Description</Label>
-          <Input value={filters.description} onChange={(e) => setFilters({ ...filters, description: e.target.value })} placeholder="Filter by description" />
+          <Input className="bg-card" value={filters.description} onChange={(e) => setFilters({ ...filters, description: e.target.value })} placeholder="Filter by description" />
         </div>
 
         <div>
@@ -65,7 +65,7 @@ export default function ReviewsFilters({
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-card">
               {/* <SelectItem value="">All</SelectItem> */}
               <SelectItem value="positive">Positive</SelectItem>
               <SelectItem value="neutral">Neutral</SelectItem>

@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: recom-agent-deployment
+  name: recomm-agent-deployment
   labels:
-    app: recom-agent
+    app: recomm-agent
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: recom-agent
+      app: recomm-agent
   template:
     metadata:
       labels:
-        app: recom-agent
+        app: recomm-agent
     spec:
       containers:
-      - name: recom-agent
+      - name: recomm-agent
         image: sleepytmzd/recomm-agent:v2
         ports:
         - containerPort: 8020
@@ -56,11 +56,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: recom-agent-service
+  name: recomm-agent-service
 spec:
   type: NodePort
   selector:
-    app: recom-agent
+    app: recomm-agent
   ports:
     - protocol: TCP
       port: 80

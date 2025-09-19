@@ -137,12 +137,12 @@ export default function CreateHangoutModal({
           </div>
 
           <div>
-            <Label>Time (optional)</Label>
+            <Label>Time</Label>
             <Input type="datetime-local" value={allocTime ?? ""} onChange={(e) => setAllocTime(e.target.value || null)} />
           </div>
 
           <div>
-            <Label>Restaurant (optional)</Label>
+            <Label>Restaurant</Label>
             <Input
               value={restaurantQuery}
               onChange={(e) => {
@@ -152,7 +152,7 @@ export default function CreateHangoutModal({
               }}
               placeholder="Search restaurants by name / category / location"
             />
-            <div className="text-xs text-muted-foreground mt-1">Pick a restaurant from the list (optional)</div>
+            <div className="text-xs text-muted-foreground mt-1">Pick a restaurant from the list</div>
 
             {/* Suggestion list */}
             {!selectedRestaurant && restaurantQuery.trim() !== "" && (

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: sleepytmzd/frontend:v4
+        image: sleepytmzd/frontend:v5
         ports:
         - containerPort: 7000
         env:

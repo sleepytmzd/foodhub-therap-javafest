@@ -4,10 +4,12 @@ import AuthButton from "@/components/AuthButton";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import SplitText from "@/components/ui/SplitText";
 import createApi from "@/lib/api";
 import api from "@/lib/api";
 import { useAuth } from "@/providers/AuthProvider";
 import { create } from "domain";
+import { Bot, Users, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -36,7 +38,7 @@ export default function Home() {
       } catch (error: any) {
         if (error.response?.status === 404) {
           console.log("User not found, creating...");
-          const user = { id: sub, name, firstName, lastName, email, coins: 10, createdAt: new Date().toISOString() };
+          const user = { id: sub, name, firstName, lastName, email, coins: 20, createdAt: new Date().toISOString() };
           await api.post(`/api/user`, user);
         } else {
           console.error("Unexpected error checking user", error);
@@ -59,15 +61,34 @@ export default function Home() {
     }
   };
 
+  function handleAnimationComplete(): void {
+    console.log('All letters have animated!');
+  }
+
   return (
     <main className="flex flex-col">
       {/* Hero Section */}
+      
       <section className="relative flex min-h-[72vh] items-center py-12 px-6 justify-center max-w-7xl mx-auto">
         <div className="container grid gap-8 md:grid-cols-2 items-center">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight max-w-2xl">
-                Discover & Share Your Culinary Journey
+                
+                <SplitText
+                  text="Discover & Share Your Culinary Journey"
+                  className="text-7xl font-bold text-leading-tight"
+                  delay={50}
+                  duration={0.3}
+                  ease="power3.out"
+                  splitType="chars"
+                  from={{ opacity: 0, y: 40 }}
+                  to={{ opacity: 1, y: 0 }}
+                  threshold={0.1}
+                  rootMargin="-100px"
+                  textAlign="center"
+                  onLetterAnimationComplete={handleAnimationComplete}
+                />
               </h1>
               {/* <div className="hidden md:flex items-center gap-2">
                 <ModeToggle />
@@ -81,7 +102,7 @@ export default function Home() {
             </p>
 
             <div className="flex flex-wrap gap-4 items-center">
-              <Button size="lg" asChild>
+              <Button className="hover:scale-105 transition-transform" size="lg" asChild>
                 <Link href="/explore">Start Exploring</Link>
               </Button>
               <Button size="lg" variant="outline" onClick={handleRegister}>
@@ -117,7 +138,9 @@ export default function Home() {
         <div className="container grid gap-8 md:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle>🍽️ Restaurant Reviews</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+              <UtensilsCrossed /> Restaurant Reviews
+              </CardTitle>
             </CardHeader>
             <CardContent>
               Share your dining experiences and discover hidden gems recommended
@@ -126,7 +149,9 @@ export default function Home() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>🤖 AI Food Tools</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Bot /> AI Food Tools
+              </CardTitle>
             </CardHeader>
             <CardContent>
               Get personalized dish recommendations, nutrition breakdowns, and AI
@@ -135,7 +160,9 @@ export default function Home() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>⭐ Trusted Community</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users /> Trusted Community
+              </CardTitle>
             </CardHeader>
             <CardContent>
               Connect with food lovers, follow top reviewers, and build your

@@ -78,7 +78,7 @@ export default function CreateFoodPage() {
           <Input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
         </div>
         <div>
-          <label className="text-sm font-medium">Image (optional)</label>
+          <label className="text-sm font-medium">Image</label>
           <input className="mt-1 border border-input rounded bg-muted/5 hover:bg-muted/10" type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] ?? null)} />
         </div>
         <div className="flex justify-end gap-2">

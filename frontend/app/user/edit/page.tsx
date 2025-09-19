@@ -4,6 +4,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import createApi from "@/lib/api";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/use-toast";
 
 type User = {
   id: string;
@@ -25,10 +26,10 @@ type User = {
 
 export default function EditProfilePage() {
   const { initialized, keycloak } = useAuth();
+  const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const fallbackCover =
@@ -150,7 +151,6 @@ export default function EditProfilePage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setStatusMsg(null);
     setErrorMsg(null);
     try {
       if (!user) throw new Error("No user to update");
@@ -190,7 +190,8 @@ export default function EditProfilePage() {
         headers: {},
       });
 
-      setStatusMsg("Profile updated successfully.");
+      // show toast notification instead of page text
+      toast?.({ title: "Profile updated", description: "Profile updated successfully." });
       // refresh local state
       // if files were uploaded, server will return updated URLs on next fetch - do a quick refetch
       const refreshed = await api.get(`/api/user/${user.id}`);
@@ -334,9 +335,9 @@ export default function EditProfilePage() {
 
                 <div className="w-full mt-4 space-y-3">
                     <label className="block text-sm font-medium">Upload avatar</label>
-                    <input type="file" accept="image/*" onChange={onAvatarFile} />
+                    <input className="mt-1 border border-input rounded bg-muted/5 hover:bg-muted/10" type="file" accept="image/*" onChange={onAvatarFile} />
                     <label className="block text-sm font-medium mt-2">Upload cover</label>
-                    <input type="file" accept="image/*" onChange={onCoverFile} />
+                    <input className="mt-1 border border-input rounded bg-muted/5 hover:bg-muted/10" type="file" accept="image/*" onChange={onCoverFile} />
                     {coverFile && (
                     <div className="flex gap-2 mt-2">
                         <button type="button" onClick={clearCoverFile} className="px-3 py-1 rounded-md border text-sm">
@@ -360,7 +361,6 @@ export default function EditProfilePage() {
                   </div>
                 </div> */}
 
-                {statusMsg && <div className="text-sm text-green-600">{statusMsg}</div>}
                 {errorMsg && <div className="text-sm text-destructive">{errorMsg}</div>}
 
                 <div className="flex items-center gap-3">

@@ -84,18 +84,15 @@ public class RestaurantService {
         restaurant.setWeblink(restaurantRequest.weblink() != null ? restaurantRequest.weblink() : restaurant.getWeblink());
 
         
-        if (restaurantRequest.foodIdList() != null && !restaurantRequest.foodIdList().isEmpty()) {
-            List<String> existingFoodIds = restaurant.getFoodIds();
-            
-            
-            for (String foodId : restaurantRequest.foodIdList()) {
-                if (!existingFoodIds.contains(foodId)) {
-                    existingFoodIds.add(foodId);
-                }
-            }
-            
-            
-            restaurant.setFoodIds(existingFoodIds);
+//        if (restaurantRequest.foodIdList() != null && !restaurantRequest.foodIdList().isEmpty()) {
+        if (restaurantRequest.foodIdList() != null) {
+//            List<String> existingFoodIds = restaurant.getFoodIds();
+//            for (String foodId : restaurantRequest.foodIdList()) {
+//                if (!existingFoodIds.contains(foodId)) {
+//                    existingFoodIds.add(foodId);
+//                }
+//            }
+            restaurant.setFoodIds(restaurantRequest.foodIdList());
         }
 
         

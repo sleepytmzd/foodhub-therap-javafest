@@ -23,6 +23,7 @@ export default function AIEntityModal({
 }) {
   const [loading, setLoading] = useState(false);
   const [restaurant, setRestaurant] = useState<RestaurantDto | null>(null);
+  const [restaurantFoods, setRestaurantFoods] = useState<FoodResponse[]>([]); // fetched foods for restaurant
   const [food, setFood] = useState<FoodResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +34,7 @@ export default function AIEntityModal({
       setLoading(true);
       setError(null);
       setRestaurant(null);
+      setRestaurantFoods([]);
       setFood(null);
       try {
         if (type === "restaurant") {
@@ -40,12 +42,44 @@ export default function AIEntityModal({
           if (entity.db_id) {
             const r = await getRestaurantById(entity.db_id, process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL, token);
             if (!cancelled) setRestaurant(r);
+            // fetch foods by id list if provided
+            if (!cancelled && r?.foodIdList && r.foodIdList.length > 0) {
+              const foodPromises = (r.foodIdList || []).map(async (fid: any) => {
+                try {
+                  // if item is an object already, return it
+                  if (typeof fid === "object" && (fid.f_name || fid.name)) return fid as FoodResponse;
+                  const id = String(fid);
+                  const f = await getFoodById(id, process.env.NEXT_PUBLIC_FOOD_SERVICE_URL, token);
+                  return f;
+                } catch {
+                  return null;
+                }
+              });
+              const foodsResolved = (await Promise.all(foodPromises)).filter(Boolean) as FoodResponse[];
+              if (!cancelled) setRestaurantFoods(foodsResolved);
+            }
             return;
           }
           // otherwise fetch all and match by name+location (best-effort)
           const all = await fetchRestaurantsApi(process.env.NEXT_PUBLIC_RESTAURANT_SERVICE_URL || "", token);
           const found = all.find((a) => String(a.name).toLowerCase() === String(entity.name).toLowerCase() || (entity.location && String(a.location).toLowerCase() === String(entity.location).toLowerCase()));
-          if (found && !cancelled) setRestaurant(found);
+          if (found && !cancelled) {
+            setRestaurant(found);
+            if (!cancelled && found?.foodIdList && found.foodIdList.length > 0) {
+              const foodPromises = (found.foodIdList || []).map(async (fid: any) => {
+                try {
+                  if (typeof fid === "object" && (fid.f_name || fid.name)) return fid as FoodResponse;
+                  const id = String(fid);
+                  const f = await getFoodById(id, process.env.NEXT_PUBLIC_FOOD_SERVICE_URL, token);
+                  return f;
+                } catch {
+                  return null;
+                }
+              });
+              const foodsResolved = (await Promise.all(foodPromises)).filter(Boolean) as FoodResponse[];
+              if (!cancelled) setRestaurantFoods(foodsResolved);
+            }
+          }
         } else if (type === "food") {
           if (entity.db_id) {
             const f = await getFoodById(entity.db_id, process.env.NEXT_PUBLIC_FOOD_SERVICE_URL, token);
@@ -101,27 +135,50 @@ export default function AIEntityModal({
                 </div>
               )}
 
-              {/* show foods in this restaurant if available */}
-              {restaurant?.foodIdList && restaurant.foodIdList.length > 0 && (
+              {/* show foods in this restaurant if available (resolve IDs -> full food info) */}
+              {restaurantFoods && restaurantFoods.length > 0 ? (
                 <div className="mt-4">
                   <div className="font-medium mb-2">Foods at this restaurant</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {restaurant.foodIdList.map((ff: any) => (
-                      <div key={ff.id ?? ff.db_id ?? ff.f_name} className="p-2 border rounded bg-muted/5">
+                    {restaurantFoods.map((ff) => (
+                      <div key={ff.id ??  ff.f_name} className="p-2 border rounded bg-muted/5">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded overflow-hidden flex-shrink-0">
-                            {ff.image_url ? <img src={ff.image_url} alt={ff.f_name ?? ff.name} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted flex items-center justify-center text-xs">No image</div>}
+                            {ff.image_url ? <img src={ff.image_url} alt={ff.f_name } className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted flex items-center justify-center text-xs">No image</div>}
                           </div>
                           <div className="flex-1">
-                            <div className="font-medium">{ff.f_name ?? ff.name}</div>
+                            <div className="font-medium">{ff.f_name}</div>
                             {ff.category && <div className="text-xs text-muted-foreground">{ff.category}</div>}
                             {typeof ff.price === "number" && <div className="text-xs text-muted-foreground mt-1">Price: {ff.price}</div>}
                           </div>
                         </div>
-                      </div>
+                      </div> 
                     ))}
                   </div>
                 </div>
+              ) : (
+                // fallback: if restaurant.foodIdList already contains embedded objects, show those
+                restaurant?.foodIdList && restaurant.foodIdList.length > 0 && (
+                  <div className="mt-4">
+                    <div className="font-medium mb-2">Foods at this restaurant</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {restaurant.foodIdList.map((ff: any, i: number) => (
+                        <div key={i} className="p-2 border rounded bg-muted/5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded overflow-hidden flex-shrink-0">
+                              {ff.image_url ? <img src={ff.image_url} alt={ff.f_name ?? ff.name} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted flex items-center justify-center text-xs">No image</div>}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium">{ff.f_name ?? ff.name ?? "Food"}</div>
+                              {ff.category && <div className="text-xs text-muted-foreground">{ff.category}</div>}
+                              {typeof ff.price === "number" && <div className="text-xs text-muted-foreground mt-1">Price: {ff.price}</div>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
               )}
             </>
           )}

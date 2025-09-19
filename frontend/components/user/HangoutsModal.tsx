@@ -213,7 +213,7 @@ export default function HangoutsModal({
                   : "text-amber-800 bg-amber-50 dark:text-amber-200 dark:bg-amber-900/30 px-2 py-1 rounded text-xs";
 
               return (
-                <li key={h.id} className="rounded border p-3 bg-card">
+                <li key={h.id} className="rounded border p-3 bg-card hover:scale-101 transition-transform hover:shadow-md">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">

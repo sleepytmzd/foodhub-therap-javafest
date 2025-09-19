@@ -220,6 +220,7 @@ services:
       IMAGE_SERVICE_URL: http://image-service-sb:8080
       FRONTEND_URL: http://localhost:7000
       KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
+      STARTING_COINS: 20
     # extra_hosts:
     #   - "localhost:host-gateway"
     depends_on:

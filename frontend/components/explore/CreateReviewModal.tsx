@@ -51,6 +51,7 @@ export default function CreateReviewModal({
   const [selectedRestaurant, setSelectedRestaurant] = useState<any | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   // fetch all foods once per modal open
   const fetchFoods = async () => {
     setLoading(true);
@@ -149,19 +150,25 @@ export default function CreateReviewModal({
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!isAuth) return alert("Please sign in to create review");
+    if (submitting) return; // guard double clicks
+    setSubmitting(true);
     const payload = {
       targetType,
       targetId: targetType === "food" ? selectedFood?.id ?? null : targetType === "restaurant" ? selectedRestaurant?.id ?? null : null,
       title: title.trim(),
       description: description.trim(),
     };
-    await onCreate(payload);
-    // clear modal state
-    setTitle("");
-    setDescription("");
-    setSelectedFood(null);
-    setSelectedRestaurant(null);
-    onOpenChange(false);
+    try {
+      await onCreate(payload);
+      // clear modal state
+      setTitle("");
+      setDescription("");
+      setSelectedFood(null);
+      setSelectedRestaurant(null);
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -230,7 +237,7 @@ export default function CreateReviewModal({
                    <div className="flex-1">
                      <div className="font-medium">{selectedFood.f_name}</div>
                      {selectedFood.description && <div className="text-xs text-muted-foreground">{selectedFood.description}</div>}
-                     <div className="text-xs text-muted-foreground mt-1">id: {selectedFood.id}</div>
+                     {/* <div className="text-xs text-muted-foreground mt-1">id: {selectedFood.id}</div> */}
                    </div>
                    <div>
                      <Button size="sm" variant="ghost" onClick={() => setSelectedFood(null)}>Clear</Button>
@@ -288,8 +295,10 @@ export default function CreateReviewModal({
           )}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => { onOpenChange(false); }}>Cancel</Button>
-            <Button type="submit" >Submit review</Button>
+            <Button type="button" variant="ghost" onClick={() => { onOpenChange(false); }} disabled={submitting}>Cancel</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Creating..." : "Submit review"}
+            </Button>
           </div>
         </form>
       </DialogContent>

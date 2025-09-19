@@ -213,17 +213,17 @@ export default function AITools() {
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-2">
             <Label>Query</Label>
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. best burgers near me" />
+            <Input className="bg-card" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. best burgers near me" />
           </div>
 
           <div>
             <Label>Place (optional)</Label>
-            <Input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="City or plus-code" />
+            <Input className="bg-card" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="City or plus-code" />
           </div>
 
           <div>
             <Label>Types</Label>
-            <select value={types} onChange={(e) => setTypes(e.target.value as any)} className="w-full rounded border px-2 py-1 bg-input">
+            <select value={types} onChange={(e) => setTypes(e.target.value as any)} className="w-full rounded border px-2 py-1 bg-card">
               <option value="">Any</option>
               <option value="food">Foods</option>
               <option value="restaurant">Restaurants</option>
@@ -233,17 +233,17 @@ export default function AITools() {
 
           <div>
             <Label>Max price</Label>
-            <Input value={maxPrice ?? ""} onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : undefined)} placeholder="e.g. 500" />
+            <Input className="bg-card" value={maxPrice ?? ""} onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : undefined)} placeholder="e.g. 500" />
           </div>
 
           <div>
             <Label>Category</Label>
-            <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Burger" />
+            <Input className="bg-card" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Burger" />
           </div>
 
           <div>
             <Label>Restaurant (optional)</Label>
-            <Input value={restaurantName} onChange={(e) => setRestaurantName(e.target.value)} placeholder="Restr. name to bias" />
+            <Input className="bg-card" value={restaurantName} onChange={(e) => setRestaurantName(e.target.value)} placeholder="Restr. name to bias" />
           </div>
         </div>
 

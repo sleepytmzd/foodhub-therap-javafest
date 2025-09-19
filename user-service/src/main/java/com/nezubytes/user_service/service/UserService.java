@@ -6,6 +6,7 @@ import com.nezubytes.user_service.model.Users;
 import com.nezubytes.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,6 +20,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
+    @Value("${starting.coins}")
+    private String startingCoins;
     private final UserRepository userRepository;
 
     public UserResponse createUser(UserRequest userRequest) {
@@ -26,7 +29,7 @@ public class UserService {
         LocalDateTime now = LocalDateTime.now();
         user.setCreatedAt(now);
         user.setLastRechargedAt(now); // first recharge same as creation
-        user.setCoins(10);
+        user.setCoins(Integer.parseInt(startingCoins));
         userRepository.save(user);
         return mapToResponse(user);
     }
@@ -49,7 +52,7 @@ public class UserService {
                 : user.getCreatedAt();
 
         if (lastRecharge != null && ChronoUnit.MONTHS.between(lastRecharge, LocalDateTime.now()) >= 1) {
-            user.setCoins(10); // reset coins
+            user.setCoins(Integer.parseInt(startingCoins)); // reset coins
             user.setLastRechargedAt(LocalDateTime.now());
             userRepository.save(user);
         }

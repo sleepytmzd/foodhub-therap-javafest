@@ -179,7 +179,7 @@ export default function CreateRestaurantPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium">Weblink (optional)</label>
+          <label className="text-sm font-medium">Weblink</label>
           <Input value={weblink} onChange={(e) => setWeblink(e.target.value)} />
         </div>
 
@@ -189,7 +189,7 @@ export default function CreateRestaurantPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium">Description (optional)</label>
+          <label className="text-sm font-medium">Description</label>
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
 

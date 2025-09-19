@@ -31,14 +31,17 @@ export function Navbar() {
         <nav className="hidden md:flex items-center space-x-6 text-md font-medium">
           {isAuth ? (
             <>
+              <Link href="/explore?view=reviews" className="transition-colors hover:text-primary hover:scale-115 transition-transform px-2 py-1 rounded">
+                Timeline
+              </Link>
               <Link href="/explore?view=restaurants" className="transition-colors hover:text-primary hover:scale-115 transition-transform px-2 py-1 rounded">
                 Restaurants
-              </Link>
-              <Link href="/explore?view=reviews" className="transition-colors hover:text-primary hover:scale-115 transition-transform px-2 py-1 rounded">
-                Reviews
-              </Link>
+              </Link> 
               <Link href="/explore?view=ai" className="transition-colors hover:text-primary hover:scale-115 transition-transform px-2 py-1 rounded">
-                AI Tools
+                Recommendation
+              </Link>
+              <Link href="/explore?view=foods" className="transition-colors hover:text-primary hover:scale-115 transition-transform px-2 py-1 rounded">
+                Food
               </Link>
               <Link href="/explore?view=users" className="transition-colors hover:text-primary hover:scale-115 transition-transform px-2 py-1 rounded">
                 Users

@@ -1,12 +1,12 @@
 apiVersion: cloud.google.com/v1
 kind: BackendConfig
 metadata:
-  name: review-service-backendconfig
+  name: hangout-service-backendconfig
 spec:
   healthCheck:
     type: HTTP
     requestPath: /health
-    port: 8083
+    port: 8081
     checkIntervalSec: 10
     timeoutSec: 5
     healthyThreshold: 1
@@ -17,47 +17,42 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: review-service-deployment
+  name: hangout-service-deployment
   labels:
-    app: review-service
+    app: hangout-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: review-service
+      app: hangout-service
   template:
     metadata:
       labels:
-        app: review-service
+        app: hangout-service
     spec:
       containers:
-      - name: review-service
-        image: sleepytmzd/review-service:v5
+      - name: hangout-service
+        image: sleepytmzd/hangout-service:v1
         ports:
-        - containerPort: 8083
+        - containerPort: 8091
         env:
-          - name: MONGODB3_URL
-            value: mongodb://root:password@mongodb-review-service:27017/review-service?authSource=admin
-          - name: FRONTEND_URL
-            valueFrom:
-              configMapKeyRef:
-                name: app-config 
-                key: frontend-url
-          - name: KC_ISSUER_URL
-            valueFrom:
-              configMapKeyRef:
-                name: app-config 
-                key: kc-issuer-url
-          - name: NEGPOS_URL
-            valueFrom:
-              configMapKeyRef:
-                name: app-config 
-                key: negpos-url
-
+        - name: MONGODB6_URL
+          value: mongodb://root:password@mongodb-hangout-service:27017/hangout-service?authSource=admin
+        - name: FRONTEND_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config 
+              key: frontend-url
+        - name: KC_ISSUER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config 
+              key: kc-issuer-url
+        
         startupProbe:
           httpGet:
             path: /health
-            port: 8083
+            port: 8091
           initialDelaySeconds: 100
           periodSeconds: 10
           timeoutSeconds: 20
@@ -66,7 +61,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: 8083
+            port: 8091
           initialDelaySeconds: 100   # give your app some time to start
           periodSeconds: 10
           timeoutSeconds: 20
@@ -75,12 +70,12 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8083
+            port: 8091
           initialDelaySeconds: 100
           periodSeconds: 10
           timeoutSeconds: 20
           failureThreshold: 30
-
+              
         resources:
           requests:
             cpu: "100m"       
@@ -94,16 +89,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: review-service-service
+  name: hangout-service-service
   annotations:
-    cloud.google.com/backend-config: '{"default":"review-service-backendconfig"}'
+    cloud.google.com/backend-config: '{"default":"hangout-service-backendconfig"}'
 spec:
   type: NodePort
   selector:
-    app: review-service
+    app: hangout-service
   ports:
     - protocol: TCP
-      port: 8083
-      targetPort: 8083
+      port: 8091
+      targetPort: 8091
       # nodePort: 30100
 
