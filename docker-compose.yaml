@@ -64,8 +64,6 @@ services:
       POSTGRES_DB: keycloak_db
       POSTGRES_USER: keycloak_db_user
       POSTGRES_PASSWORD: keycloak_db_user_password
-    # networks:
-    #   - keycloak_network
   postgres-user:
     image: postgres:17.6
     container_name: postgres-user 
@@ -103,17 +101,14 @@ services:
       - 8090:8080
     volumes:
       - ./keycloak:/opt/keycloak/data/import
-    # restart: always
     depends_on:
       - postgres-kc
-    # networks:
-    #   - keycloak_network
   nginx-proxy:
     image: nginx:stable
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "8080:8080"  # expose to browser as localhost:8080
+      - "8080:8080"
     depends_on:
       - keycloak
   image-service-sb:
@@ -122,8 +117,8 @@ services:
     ports:
       - "8085:8080"
     environment:
-      CLOUDINARY_URL: cloudinary://941186935662824:i5ioWntb-8NFNNUPvncgCijswFE@dihf0za5q
-
+      # cloudinary url must be supplied in .env
+      CLOUDINARY_URL: "${CLOUDINARY_URL}"
   food-service:
     image: sleepytmzd/food-service:v5
     container_name: food-service
@@ -140,9 +135,8 @@ services:
       - mongodb1
       - image-service-sb
       - recomm-agent-service
-  
   review-service:
-    image: sleepytmzd/review-service:v5       # Replace with your dockerhub username
+    image: sleepytmzd/review-service:v5
     container_name: review-service
     ports:
       - "8083:8083"
@@ -168,13 +162,11 @@ services:
       FRONTEND_URL: http://localhost:7000
       KC_ISSUER_URL: http://keycloak:8080/realms/foodhub
       STARTING_COINS: 20
-    # extra_hosts:
-    #   - "localhost:host-gateway"
     depends_on:
       postgres-user:
         condition: service_healthy
   restaurant-service:
-    image: sleepytmzd/restaurant-service:v1       # Replace with your dockerhub username
+    image: sleepytmzd/restaurant-service:v1
     container_name: restaurant-service
     ports:
       - "8089:8089"
@@ -188,7 +180,6 @@ services:
     depends_on:
       - mongodb4
       - recomm-agent-service
-
   frontend:
     image: sleepytmzd/frontend:v5
     container_name: frontend
@@ -198,7 +189,6 @@ services:
       NEXT_PUBLIC_KEYCLOAK_URL: http://localhost:8080
       NEXT_PUBLIC_KEYCLOAK_REALM: foodhub
       NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: foodhub-kc
-      # NEXT_PUBLIC_VISIT_SERVICE_URL: http://localhost:8082
       NEXT_PUBLIC_USER_SERVICE_URL: http://localhost:8084
       NEXT_PUBLIC_REVIEW_SERVICE_URL: http://localhost:8083
       NEXT_PUBLIC_FOOD_SERVICE_URL: http://localhost:8081
@@ -208,49 +198,45 @@ services:
       NEXT_PUBLIC_HANGOUT_SERVICE_URL: http://localhost:8091
     depends_on:
       - keycloak
-
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant
     ports:
-      - "6333:6333"   # REST API
-      - "6334:6334"   # gRPC API
+      - "6333:6333"
+      - "6334:6334"
     volumes:
       - ./qdrant_storage:/qdrant/storage
-
   recomm-agent-service:
-    image: sleepytmzd/recomm-agent:v2       # Replace with actual image for your OpenAI service
+    image: sleepytmzd/recomm-agent:v2
     container_name: recomm-agent-service
     ports:
       - "8020:8020"
     environment:
       QDRANT_URL: http://qdrant:6333
       MONGODB5_URL: mongodb://root:password@mongodb5:27017/recommendation-service?authSource=admin
-      GOOGLE_PLACES_API_KEY: AIzaSyA5_RYijTsFz7b0x3XQP3MUo03xpM0V7gE
-      OPENAI_API_KEY: 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
-      FRONTEND_URL: http://localhost:7000    
+      # API keys moved to .env
+      GOOGLE_PLACES_API_KEY: "${GOOGLE_PLACES_API_KEY}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      FRONTEND_URL: http://localhost:7000
     depends_on:
       - qdrant
-
   negative-positive-agent-service:
-    image: sleepytmzd/negative-positive-agent:v1     # Replace with actual image for your OpenAI service
+    image: sleepytmzd/negative-positive-agent:v1
     container_name: negative-positive-agent-service
     ports:
       - "8021:8021"
     environment:
-      GEMINI_API_KEY: AIzaSyBjt0UbNnk-OVkJuxp0zXY2826UhPAbDQc
-
+      GEMINI_API_KEY: "${GEMINI_API_KEY}"
   nutrition-predict-agent:
     image: sleepytmzd/nutrition-predict-agent:v1
     container_name: nutrition-predict-agent
     ports:
       - "8022:8022"
     environment:
-      OPENAI_API_KEY: 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
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
       FRONTEND_URL: http://localhost:7000
-  
   hangout-service:
-    image: sleepytmzd/hangout-service:v1       # Replace with your dockerhub username
+    image: sleepytmzd/hangout-service:v1
     container_name: hangout-service
     ports:
       - "8091:8091"
