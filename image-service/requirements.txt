@@ -1,3 +1,0 @@
-cloudinary
-fastapi
-uvicorn
