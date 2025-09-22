@@ -21,13 +21,16 @@ Built with a **microservices architecture**, Foodhub combines scalable backend s
 
 Foodhub follows a **microservices-based architecture**:  
 
+![Architecture Diagram](./architecture-diagram.png)
+
 ### Backend Services (Spring Boot)
-- **Food Service** – Manage food-related data  
-- **Restaurant Service** – Restaurant listings and info  
-- **User Service** – User profiles and management  
-- **Review Service** – Store and fetch reviews  
-- **Hangout Service** – Plan and manage hangouts  
-- **Image Service** – Handle food/restaurant image uploads  
+- **Food Service**: Manage food-related data
+
+- **Restaurant Service**: Restaurant listings and info  
+- **User Service**: User profiles and management  
+- **Review Service**: Store and fetch reviews  
+- **Hangout Service**: Plan and manage hangouts  
+- **Image Service**: Handle food/restaurant image uploads (uses Cloudinary)
 
 Each service (except image service) has its own database (**PostgreSQL** or **MongoDB**) ensuring independence and scalability.  
 
@@ -48,6 +51,9 @@ Each service (except image service) has its own database (**PostgreSQL** or **Mo
 - **Deployed on Google Kubernetes Engine (GKE)** – All manifests in the `/k8s` folder  
 - **Public Deployment:** [https://foodhubapp.duckdns.org](https://foodhubapp.duckdns.org)  
 
+
+![Deployment status](./deployment.png)
+
 ---
 
 ## Usage Guide
@@ -55,7 +61,7 @@ Each service (except image service) has its own database (**PostgreSQL** or **Mo
 ### Run Locally with Docker Compose
 1. Clone the repository  
    ```bash
-   git clone https://github.com/<your-repo>/foodhub.git
+   git clone https://github.com/sleepytmzd/foodhub-therap-javafest.git
    cd foodhub
    ```
 2. Run with Docker compose
