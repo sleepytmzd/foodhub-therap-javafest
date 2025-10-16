@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Heart, MessageSquare, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import type { FoodResponse } from "@/lib/foodService";
+import createApi from "@/lib/api";
+import { useAuth } from "@/providers/AuthProvider";
 
 type Comment = { id: string; user: string; text: string; time: string };
 export type ReviewPost = {
@@ -22,6 +24,9 @@ export type ReviewPost = {
   restaurant?: { id: string; name: string; location?: string; category?: string; weblink?: string } | undefined;
 };
 
+// simple in-memory cache to avoid refetching same user many times
+const userDisplayCache: Record<string, { name: string; avatar?: string }> = {};
+
 export default function FeedPost({
   post,
   liked,
@@ -37,21 +42,73 @@ export default function FeedPost({
   onOpenComments: (p: ReviewPost) => void;
   onRequireAuth: () => void;
 }) {
+  const { initialized, keycloak } = useAuth();
+  const token = (keycloak as any)?.token;
+  const [displayUser, setDisplayUser] = useState<{ name: string; avatar?: string }>(() => ({
+    name: post.user?.name || post.user?.id || "User",
+    avatar: post.user?.avatar,
+  }));
+
+  useEffect(() => {
+    let cancelled = false;
+    const id = post.user?.id;
+    if (!id) return;
+
+    // if cached, use it immediately
+    if (userDisplayCache[id]) {
+      setDisplayUser(userDisplayCache[id]);
+      return;
+    }
+
+    // use existing name/avatar as optimistic UI
+    setDisplayUser((prev) => ({
+      name: prev?.name || post.user?.name || id,
+      avatar: prev?.avatar || post.user?.avatar,
+    }));
+
+    const load = async () => {
+      try {
+        const base = process.env.NEXT_PUBLIC_USER_SERVICE_URL || "";
+        if (!base) return;
+        const api = createApi(base);
+        if (token) (api as any).defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        const resp = await api.get(`/api/user/${id}`);
+        const d = resp.data || {};
+        const name =
+          (typeof d.name === "string" && d.name.trim()) ||
+          [d.firstName, d.lastName].filter(Boolean).join(" ").trim() ||
+          (typeof d.email === "string" ? d.email.split("@")[0] : "") ||
+          id;
+        const avatar: string | undefined =
+          d.userPhoto || d.avatar || d.avatarUrl || d.profilePicture || d.photoUrl || undefined;
+        const info = { name, avatar };
+        userDisplayCache[id] = info;
+        if (!cancelled) setDisplayUser(info);
+      } catch {
+        // keep optimistic fallback
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [post.user?.id, token]);
+
   return (
     <article className="rounded-md border bg-card p-4 shadow-sm hover:scale-101 transition-transform hover:shadow-lg">
       <header className="flex items-start gap-3">
         <Avatar className="size-12">
-          {post.user.avatar ? (
-            <AvatarImage src={post.user.avatar} alt={post.user.name} />
+          {displayUser.avatar ? (
+            <AvatarImage src={displayUser.avatar} alt={displayUser.name} />
           ) : (
-            <AvatarFallback>{post.user.name?.[0] ?? "U"}</AvatarFallback>
+            <AvatarFallback>{(displayUser.name || post.user.id || "U")[0]}</AvatarFallback>
           )}
         </Avatar>
 
         <div className="flex-1">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="font-medium">{post.user.name}</div>
+              <div className="font-medium">{displayUser.name}</div>
               <div className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })} {post.rating ? `· ⭐ ${post.rating}` : null}
               </div>

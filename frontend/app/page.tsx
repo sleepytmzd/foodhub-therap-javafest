@@ -34,10 +34,10 @@ export default function Home() {
     const performAction = async () => {
       try {
         await api.get(`/api/user/${sub}`);
-        console.log("User exists in DB");
+        // console.log("User exists in DB");
       } catch (error: any) {
         if (error.response?.status === 404) {
-          console.log("User not found, creating...");
+          // console.log("User not found, creating...");
           const user = { id: sub, name, firstName, lastName, email, coins: 20, createdAt: new Date().toISOString() };
           await api.post(`/api/user`, user);
         } else {
@@ -48,7 +48,7 @@ export default function Home() {
 
     performAction();
   }, [keycloak?.authenticated]);
-  console.log(keycloak?.authenticated);
+  // console.log(keycloak?.authenticated);
 
   const handleRegister = () => {
     if (!initialized) return;
@@ -62,7 +62,7 @@ export default function Home() {
   };
 
   function handleAnimationComplete(): void {
-    console.log('All letters have animated!');
+    // console.log('All letters have animated!');
   }
 
   return (

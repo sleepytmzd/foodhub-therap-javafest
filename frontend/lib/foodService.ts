@@ -41,7 +41,7 @@ export async function createFood(payload: FoodRequest, baseUrl?: string, token?:
   form.append("food", jsonBlob);
   if (imageFile) {
     form.append("image", imageFile);
-    console.log("image file appended");
+    // console.log("image file appended");
     
   }
 

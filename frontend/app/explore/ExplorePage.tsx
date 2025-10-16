@@ -142,6 +142,8 @@ export default function ExplorePage() {
 
   const fetchUserNames = async (userIds: string[]): Promise<Record<string, { name: string; avatar?: string }>> => {
     if (!userServiceBase || userIds.length === 0) return {};
+    // console.log("inside fetchusernames, fetching usernames for ids:", userIds);
+    
     const api = userApiClient();
     const newMap: Record<string, { name: string; avatar?: string }> = {};
     await Promise.all(
@@ -149,6 +151,8 @@ export default function ExplorePage() {
         if (!id || userNames[id]) return;
         try {
           const resp = await api.get(`/api/user/${id}`);
+          // console.log(`Fetched user data for id ${id}:`, resp.data);
+          
           const data = resp.data;
           if (data && data.name) newMap[id] = { name: data.name, avatar: data.userPhoto };
         } catch {
@@ -157,6 +161,7 @@ export default function ExplorePage() {
       })
     );
     if (Object.keys(newMap).length) setUserNames((s) => ({ ...s, ...newMap }));
+    // console.log("usernames fetched: ", newMap);
     return newMap;
   };
 
@@ -169,10 +174,20 @@ export default function ExplorePage() {
       setRawReviews(data);
 
       const ids = Array.from(new Set(data.map((d) => d.userId).filter(Boolean) as string[]));
+      // console.log("User ids from review posts:", ids);
       const fetchedNames = await fetchUserNames(ids);
+      // console.log("Fetched user names:", fetchedNames);
+      // console.log("userNames state:", userNames);
+      
+      
+
+      // merge current cached names with freshly fetched ones and use that for mapping
+      const namesMap: Record<string, { name: string; avatar?: string }> = { ...(userNames || {}), ...(fetchedNames || {}) };
+      // console.log("Combined names map:", namesMap);
+      
 
       const mapped: ReviewPost[] = data.map((r) => {
-        const username = userNames[r.userId ?? ""] ?? fetchedNames[r.userId ?? ""] ?? { name: r.userId ?? "User", avatar: undefined };
+        const username = namesMap[r.userId ?? ""] ?? { name: r.userId ?? "User", avatar: undefined };
         const commentsArr = (r.comments ?? []).map((cid) => ({ id: cid, user: "", text: "", time: "" }));
         return {
           id: r.id,
@@ -206,6 +221,9 @@ export default function ExplorePage() {
       );
 
       setPosts(mapped);
+      // console.log("mapped:", mapped);
+      // console.log("posts: ", posts);
+      
 
       if (userId) {
         const likesMap: Record<string, boolean> = {};

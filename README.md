@@ -4,55 +4,91 @@ Foodhub is a **full-stack web platform for food lovers** — a place to explore 
 
 Built with a **microservices architecture**, Foodhub combines scalable backend services, intelligent AI agents, and a modern frontend experience — all containerized and deployed seamlessly with DevOps best practices.  
 
-![Landing Page](./landing-page.png)
+![Landing Page](./photos/landing-page.png)
 
 ---
 
 ## Features
-- **Restaurant & Food Reviews** – Share and read reviews from fellow food lovers.  
-- **AI-Powered Tools** – Get personalized food/restaurant recommendations, sentiment analysis of reviews, and nutrition insights.  
-- **Hangout Planning** – Organize food adventures with friends and critics.  
-- **Secure Authentication** – Enterprise-grade identity management with **Keycloak**.  
-- **Modern Frontend** – Built with **Next.js** for a smooth and responsive user experience.  
+- **AI discovery with RAG**  
+  Enter a natural-language query, optionally set a place or type, and get relevant food and restaurant recommendations — including nearby restaurants. Uses Retrieval-Augmented Generation to pull the most relevant items from the database and present them cleanly.
+
+- **Reviews you can trust**  
+  Create reviews on foods or restaurants, like and comment on others’ posts, and quickly find posts with fast filters/search. An AI sentiment analyzer classifies reviews (positive/neutral/negative), and a robust sorting system surfaces the most helpful content.
+
+- **AI nutrition from images**  
+  When creating a food, upload an image and let the AI generate a nutrition profile automatically. Results are displayed alongside the food for quick health insights.
+
+- **Social and hangouts**  
+  Follow other users to keep up with their discoveries. Invite friends to hangouts and plan your next food adventure together.
+
+- **Secure, modern experience**  
+  Keycloak-powered authentication, a responsive Next.js UI, and a clean design for an enjoyable user journey.
 
 ---
 
 ## Project Architecture
 
-Foodhub follows a **microservices-based architecture**:  
+A modern, secure microservices architecture where each feature lives in its own service and database, all protected by Keycloak authentication.
 
-![Architecture Diagram](./architecture-diagram.png)
+![Architecture Diagram](./photos/architecture-diagram.png)
 
-### Backend Services (Spring Boot)
-- **Food Service**: Manage food-related data
+- **Backend microservices (Spring Boot)**
+  - **Food Service** — **MongoDB**. Manages foods; generates AI nutrition from images via the Nutrition Agent; uploads images via the Image Service.
+  - **Restaurant Service** — **MongoDB**. Manages restaurants and their food relationships.
+  - **Review Service** — **MongoDB**. Creates/reads reviews; calls the Sentiment Agent to classify review sentiment.
+  - **Hangout Service** — **MongoDB**. Schedules and manages hangouts; collaborates with the User Service.
+  - **User Service** — **PostgreSQL**. Profiles, avatars, social graph; integrates with Image Service for uploads.
+  - **Image Service** — Stateless proxy to **Cloudinary**. Receives uploads from User/Food services and stores in Cloudinary.
 
-- **Restaurant Service**: Restaurant listings and info  
-- **User Service**: User profiles and management  
-- **Review Service**: Store and fetch reviews  
-- **Hangout Service**: Plan and manage hangouts  
-- **Image Service**: Handle food/restaurant image uploads (uses Cloudinary)
+  **Service interactions** (examples):
+  - Food Service → Image Service → Cloudinary (image upload)
+  - Food Service → Nutrition Agent (OpenAI GPT‑4) for nutrition-from-image
+  - Review Service → Sentiment Agent (Gemini 2.0) for review sentiment
+  - User Service → Image Service (avatars, covers)
+  - User Service ↔ Hangout Service (invite/schedule)
 
-Each service (except image service) has its own database (**PostgreSQL** or **MongoDB**) ensuring independence and scalability.  
+- **AI agents** (FastAPI, Python)
+  - **Nutrition Prediction Agent** — Uses OpenAI **GPT‑4o** on food images to produce a nutrition profile.
+  - **Sentiment Analysis Agent** — Uses **Gemini 2.0** to classify reviews (positive/neutral/negative).
+  - **Recommendation Agent** — Uses OpenAI **GPT‑4o** + **Qdrant** vector DB for **RAG** across Food/Restaurant data, and **Google Places** API for nearby restaurants.
 
-### AI Agents (FastAPI)
-- **Sentiment Analysis Agent** – Analyzes user reviews  
-- **Nutrition Analysis Agent** – Extracts nutrition information from food items/images  
-- **Recommendation Agent** – Personalized suggestions using **MongoDB** + **Qdrant** (vector DB)  
+  **Recommendation flow:**
+  - Frontend → Recommendation Agent → Qdrant RAG over Food/Restaurant → Google Places (nearby) → results merged and returned.
 
-### Frontend
-- **Next.js** app as the user entrypoint  
+- **Authentication & IAM** (Keycloak)
+  - Dedicated **Keycloak** server backed by **PostgreSQL***.
+  - All services validate JWTs issued by Keycloak (OIDC). Frontend attaches tokens to API calls.
+  - Centralized roles/realms/clients for consistent access control.
 
-### Authentication
-- **Keycloak** for centralized authentication and authorization  
+- **Frontend** (Next.js)
+  - Modern React UI that speaks directly to each microservice over **REST**.
+  - Uses Keycloak for auth, shows AI recommendations, reviews, foods, restaurants, hangouts.
 
-### Infrastructure
-- **Containerized with Docker** – All services are available as Docker images on DockerHub  
-- **Orchestration with Docker Compose** – Spin up the full stack locally with one command  
-- **Deployed on Google Kubernetes Engine (GKE)** – All manifests in the `/k8s` folder  
-- **Public Deployment:** [https://foodhubapp.duckdns.org](https://foodhubapp.duckdns.org)  
+- **Data stores & external systems**
+  - MongoDB: Food, Restaurant, Review, Hangout services.
+  - PostgreSQL: User Service, Keycloak.
+  - Qdrant: Vector similarity for recommendation RAG.
+  - Cloudinary: Media storage for uploaded images.
+
+- **Containerization & deployment**
+  - **Docker Compose** (local): One-command spin-up of the entire stack for development.
+  - **Kubernetes (Google Kubernetes Engine, GKE)**: Production-grade deployment using manifests in /k8s.
+    - **Two ingresses**: one dedicated to authentication (Keycloak), one for the main app.
+    - **4 worker nodes** (each ~60 GB disk, 4 vCPU, 4 GB RAM).
+    - **Monitoring and logging** via GKE for availability, resilience, and scalability.
+    - **Public domain** via DuckDNS: https://foodhubapp.duckdns.org
 
 
-![Deployment status](./deployment.png)
+![Deployment](./photos/deployment.png)
+![Monitoring](./photos/monitoring.png)
+![Logging](./photos/logging.png)
+
+**High-level request flows:**
+- Nutrition from image: Frontend → Food Service → Image Service → Cloudinary → Nutrition Agent (GPT‑4) → Food Service stores nutrition → Frontend displays.
+- Review sentiment: Frontend → Review Service → Sentiment Agent (Gemini) → Review Service stores sentiment → Frontend surfaces labels/sorting.
+- AI recommendations: Frontend → Recommendation Agent → Qdrant + Food/Restaurant + Google Places → Frontend renders recommended and nearby results.
+
+
 
 ---
 
@@ -82,6 +118,8 @@ The project is already deployed and publicly available at:
     1. Services are dockerized and images pushed to DockerHub
     2. Kubernetes cluster on GKE is updated with the latest images
 - This ensures seamless, automated migration from development to production.
+
+![Github actions](./photos/github_actions.png)
 
 This project has been created by:
 

@@ -13,7 +13,7 @@ export default function Home(){
     if (!keycloak?.authenticated) {
         return <p>You must log in to see protected data.</p>;
     }
-    console.log(keycloak.tokenParsed);
+    // console.log(keycloak.tokenParsed);
 
     
     const loadData = async () => {

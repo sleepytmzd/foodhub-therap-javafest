@@ -59,7 +59,7 @@ export default function RestaurantDetails({
           if (keycloak?.token) (reviewApi as any).defaults.headers.common["Authorization"] = `Bearer ${keycloak.token}`;
           const rResp = await reviewApi.get("/api/review");
           const all = rResp.data || [];
-          console.log("all fetched reviews", all);
+          // console.log("all fetched reviews", all);
           
           const related = (all as any[]).filter((r) => String(r.resturantId) === String(restaurantId));
           setReviews(related);
